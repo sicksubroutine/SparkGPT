@@ -1,0 +1,20 @@
+# ignore ALL test files
+*.svg
+*.csv
+*.log
+*.txt
+*.pickle
+__pycache__/
+
+# ignore all the replit stuff
+venv/
+.breakpoints
+.replit
+.poetry.lock
+poetry.lock
+pyproject.toml
+.upm/
+replit.nix
+.config/
+.tutorial/
+.game-list
