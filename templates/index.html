@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>
+    window.onload = function() {
+      window.scrollTo(0,document.body.scrollHeight);
+    };
+  </script>
+  <style>
+    body {
+      background-color: black;
+      color: white;
+    }
+    .role {
+      color: red;
+    }
+    pre.code {
+      background-color: #333;
+      color: #f8f8f8;
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin: 10px 0;
+      overflow: auto;
+      width: 50%;
+    }
+    #mess {
+    padding: 10px;
+}
+
+.form-wrapper {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: black;
+    color: white;
+    padding: 10px;
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2);
+    z-index: 9999;
+}
+
+.message {
+    margin-bottom: 10px;
+    padding-bottom: 20px;
+}
+input {
+  width: 80%;
+  background-color: black;
+  color: white;
+}
+  </style>
+  <title>Therapist Chat</title>
+</head>
+<body>
+  
+<center>
+  <!-- <h2>Communicate with the AI</h2> -->
+  <div class="form-wrapper">
+    
+  <form action="/" method="post">
+      <input type="text" name="message" placeholder="Message" required>
+    
+    <button type="submit" class="btn btn-primary">Send</button>
+  </form>
+    </div>
+</center>
+  <div id="mess">
+  {% for message in messages %}
+    {% if message.role != 'system' %}
+        <div class="message {{ message.role }}">
+            {% if message.role == 'assistant' %}
+                <span class="role">AI:</span>
+              {% if '<pre>' in message.content %}
+                {{ message.content|replace('<pre>', '<pre class="code">')|safe }}</pre>
+              {% else %}
+                {{ message.content|safe }}
+              {% endif %}
+            {% elif message.role == 'user' %}
+                <span class="role">Human:</span> {{ message.content|safe }}
+            {% endif %}
+        </div>
+    {% endif %}
+       </div>
+{% endfor %}
+
+</body>
+</html>
