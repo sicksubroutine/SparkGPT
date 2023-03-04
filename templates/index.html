@@ -24,64 +24,161 @@
       padding: 10px;
       margin: 10px 0;
       overflow: auto;
-      width: 50%;
+      width: 75%;
+      font-family: monospace;
+      font-size: 0.80em;
+
     }
     #mess {
-    padding: 10px;
-}
+      padding: 20px;
+    }
 
-.form-wrapper {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background-color: black;
-    color: white;
-    padding: 10px;
-    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2);
-    z-index: 9999;
-}
+    .form-wrapper {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background-color: black;
+      color: white;
+      box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2);
+      z-index: 9999;
+    }
 
-.message {
-    margin-bottom: 10px;
-    padding-bottom: 20px;
-}
-input {
-  width: 80%;
-  background-color: black;
+    .message-ass {
+      margin: 10px;
+      background-color: #33334d;
+      border-radius: 10px;
+      box-shadow: 0px 0px 4px 2px rgba(0,0,0,0.2);
+      width: 70%;
+      font-size: 1.2em;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      float: left;
+      padding-left: 5px;
+      padding-right: 5px;
+      padding-bottom: 20px;
+    }
+
+    input {
+      width: 80%;
+      background-color: black;
+      color: white;
+    }
+
+    .input-wrapper {
+      display: flex;
+      justify-content: flex-start;
+      position: relative;
+    }
+
+    .reset-btn {
+      font-size: 20px;
+      margin-right: 10px;
+      color: #333;
+      background-color: transparent;
+      border: none;
+      cursor: pointer;
+      display: inline-block;
+    }
+
+    .reset-btn:hover {
+      color: #000;
+    }
+    .user-message {
+        background-color: blue;
+        color: white;
+        text-align: right;
+        border-radius: 10px;
+        margin: 10px;
+        box-shadow: 0px 0px 4px 2px rgba(0,0,0,0.2);
+        width: 50%;
+        font-size: 1.2em;
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        float: right;
+        padding-left: 5px;
+        padding-right: 5px;
+      }
+    input[type="text"] {
+      width: calc(80% - 40px);
+      background-color: black;
+      color: white;
+      padding: 10px;
+      border-radius: 30px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      position: relative;
+      border: 2px solid blue;
+    }
+
+    input[type="submit"] {
+      width: 40px;
+      height: 40px;
+      background-color: #33334d;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      font-size: 1.5em;
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+    }
+
+    input[type="submit"]::before {
+      content: '\2192';
+    }
+    .submit-btn {
+  position: absolute;
+  top: 8%;
+  border-radius: 50%;
+  right: 17%;
+  background-color: #33334d;
+  border: 0px;
   color: white;
+  font-size: 1.4em;
+  cursor: pointer;
+  }
+
+/* Add the arrow to the message submit button */
+.submit-btn::before {
+  content: '\2192';
 }
   </style>
   <title>Therapist Chat</title>
 </head>
 <body>
-  
-<center>
-  <!-- <h2>Communicate with the AI</h2> -->
-  <div class="form-wrapper">
-    
-  <form action="/" method="post">
-      <input type="text" name="message" placeholder="Message" required>
-    
-    <button type="submit" class="btn btn-primary">Send</button>
-  </form>
+  <center>
+    <div class="form-wrapper">
+      <form action="/" method="post">
+        <div class="input-wrapper">
+          <a href="/reset" class="reset-btn">&#x27F3;</a>
+          <input type="text" name="message" placeholder="Message" required>
+          
+        </div>
+        <button type="submit" id="submit-btn" class="submit-btn"></button>
+      </form>
     </div>
-</center>
+  </center>
   <div id="mess">
+    {% if text %}
+    <span class="role">{{ text }}</span>
+    {% endif %}
   {% for message in messages %}
     {% if message.role != 'system' %}
-        <div class="message {{ message.role }}">
+        
             {% if message.role == 'assistant' %}
-                <span class="role">AI:</span>
+          <div class="message-ass">
+                <!--<span class="role">AI:</span>-->
               {% if '<pre>' in message.content %}
                 {{ message.content|replace('<pre>', '<pre class="code">')|safe }}</pre>
               {% else %}
                 {{ message.content|safe }}
               {% endif %}
+                  </div>
             {% elif message.role == 'user' %}
-                <span class="role">Human:</span> {{ message.content|safe }}
+                  <div class="user-message">
+                <!--<span class="role">Human:</span>--> {{ message.content|safe }}
             {% endif %}
-        </div>
+                  </div>
     {% endif %}
        </div>
 {% endfor %}
