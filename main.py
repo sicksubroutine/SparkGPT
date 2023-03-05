@@ -3,55 +3,67 @@ import openai, os, markdown2
 from tools import random_token, get_IP_Address
 from replit import db
 
-## TODO: Add ability to change between some preset prompts, "Therapist AI", "Python AI", and perhaps others?
-## TODO: Improve look of the "chat" page.
-## TODO: Improve structure of the various html pages.
-## TODO: Randomly generate username on the backend and store it within the user's session.
-## TODO: Get the user's IP address and associate it with their internal username.
+## TODO: Add more prompts. 
+## TODO: Account for 4096 token limit.
 
-app = Flask(__name__)
+users = db.prefix("user")
+print(f"Number of Users: {len(users)}")
+
+app = Flask(__name__, static_url_path='/static')
 
 app.secret_key = os.environ['sessionKey']
 secretKey = os.environ['gpt-API']
 openai.api_key = f"{secretKey}"
 
-prompt4chan = os.environ['4chanPrompt']
-IFSPrompt = os.environ['IFSPrompt']
-KetoPrompt = os.environ['KetoPrompt']
-PythonPrompt = os.environ['PythonPrompt']
-TherapistPrompt = os.environ['TherapistPrompt']
-
-def res(messages):
+def res(messages) -> str:
   response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages)
   return response["choices"][0]["message"]["content"]
 
-@app.route("/")
+def prompt_choose(prompt) -> str:
+  
+  prompt4chan = os.environ['4chanPrompt']
+  IFSPrompt = os.environ['IFSPrompt']
+  KetoPrompt = os.environ['KetoPrompt']
+  PythonPrompt = os.environ['PythonPrompt']
+  TherapistPrompt = os.environ['TherapistPrompt']
+  
+  if prompt == 'prompt4chan':
+    chosen_prompt = prompt4chan
+    title = "4Chan AI"
+  elif prompt == 'IFSPrompt':
+    chosen_prompt = IFSPrompt
+    title = "Internal Family Systems AI"
+  elif prompt == 'KetoPrompt':
+    chosen_prompt = KetoPrompt
+    title = "Keto AI"
+  elif prompt == 'PythonPrompt':
+    chosen_prompt = PythonPrompt
+    title = "Python AI"
+  elif prompt == 'TherapistPrompt':
+    chosen_prompt = TherapistPrompt
+    title = "Therapist AI"
+  else:
+    chosen_prompt = None
+    title = "I am Error"
+  return chosen_prompt, title
+
+@app.route("/", methods=["GET"])
 def index():
-  return render_template("index.html")
+  text = request.args.get("t")
+  return render_template("index.html", text=text)
 
 @app.route('/login', methods=['POST', 'GET'])
 def login():
   ip_address = get_IP_Address(request)
   if request.method == 'POST':
     prompt = request.form.get('prompt')
-    if prompt == 'prompt4chan':
-        chosen_prompt = prompt4chan
-    elif prompt == 'IFSPrompt':
-        chosen_prompt = IFSPrompt
-    elif prompt == 'KetoPrompt':
-        chosen_prompt = KetoPrompt
-    elif prompt == 'PythonPrompt':
-        chosen_prompt = PythonPrompt
-    elif prompt == 'TherapistPrompt':
-        chosen_prompt = TherapistPrompt
-    else:
-        chosen_prompt = None
+    chosen_prompt, title = prompt_choose(prompt)
+    session["title"] = title
+    session["prompt"] = prompt
   if len(request.form) == 0:
     return redirect("/")
   else:
     if not session.get("username"):
-      form = request.form
-      prompt = form.get("prompt")
       users = db.prefix("user")
       for user in users:
         if db[user]["ip_address"] == ip_address:
@@ -64,45 +76,64 @@ def login():
         db[username] = {
           "username": username,
           "ip_address": ip_address,
-          "messages": [{"role": "system", "content": f"{chosen_prompt}"}]
+          "messages": [{"role": "system", "content": chosen_prompt}]
         }
+        return redirect("/chat")
     else:
-      users = db.prefix("user")
-      for user in users:
-        if db[user]["ip_address"] == ip_address:
-          session["ip_address"] = ip_address
-      
-  """else:
-    form = request.form
-    message = form.get("message")
-    messages.append({"role": "user", "content": f"{message}"})
-    response = res(messages)
-    messages.append({"role": "assistant", "content": response})
-    for message in messages:
-        if message['role'] != 'system':
-            message['content'] = markdown2.markdown(message['content'], extras=["fenced-code-blocks", "pygments"])
-    return render_template('index.html', messages=messages)"""
+      if session.get("username"):
+        username = session.get("username")
+        db[username]["messages"] = [{"role": "system", "content": chosen_prompt}]
+      return redirect("/chat")
 
-@app.route("/chat")
+
+  
+
+@app.route("/chat", methods=["GET"])
 def chat():
   if not session.get("username"):
-    return redirect("/login")
-  else:
-    messages = []
-    for message in db.prefix("user"):
-      if db[message]["username"] == session["username"]:
-        messages.append({"role": "user", "content": f"{message}"})
-    response = res(messages)
-    messages.append({"role": "assistant", "content": response})
-    for message in messages:
-      if message['role']!='system':
-        pass
+    return redirect("/")
+  username = session["username"]
+  msg = db[username]["messages"]
+
+  messages = []
+  for observed_dict in msg.value:
+    messages.append(observed_dict.value)
+  for message in messages:
+    if message["role"]!="system":
+      message["content"] = markdown2.markdown(message["content"], extras=["fenced-code-blocks"])
+  return render_template("chat.html", messages=messages, title=session.get("title"))
+
+@app.route("/respond", methods=["POST"])
+def respond():
+  if not session.get("username"):
+    return redirect("/")
+  username = session["username"]
+  msg = db[username]["messages"]
+  messages = []
+  for observed_dict in msg.value:
+    messages.append(observed_dict.value)
+  if request.method == 'POST':
+    message = request.form.get("message")
+    messages.append({"role": "user", "content": message})
+  response = res(messages)
+  messages.append({"role": "assistant", "content": response})
+  users = db.prefix("user")
+  for user in users:
+    if db[user]["username"] == session["username"]:
+      db[user]["messages"] = messages
+      break
+  return redirect("/chat")
+  
+
 @app.route("/reset")
 def reset_messages():
-  global messages
+  if not session.get("username"):
+    return redirect("/")
+  username = session["username"]
   text = "Chat Reset"
-  messages = []
-  messages.append({"role": "system", "content": f"{prompt}"})
+  prompt = session.get("prompt")
+  db[username]["messages"] = [{"role": "system", "content": f"{prompt}"}]
+  session.pop("prompt", None)
   return redirect(f"/?t={text}")
 
 app.run(host='0.0.0.0', port=81)

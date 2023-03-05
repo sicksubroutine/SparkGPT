@@ -14,7 +14,7 @@
   const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
 window.history.replaceState({ path: newUrl }, '', newUrl);
   document.getElementById("error").style.display = "none";
-}, 7000);
+}, 3000);
     {% endif %}
   </script>
   <style>
@@ -55,6 +55,12 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
       padding: 10px;
       font-family: Arial, sans-serif; font-size: 14px;
     }
+    .reset-text {
+  color: red;
+  text-align: center;
+  font-size: 4em;
+  transform: translateY(100%);
+}
   </style>
   <title>ChatGPT Prompt Select</title>
 </head>

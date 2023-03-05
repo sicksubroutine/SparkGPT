@@ -6,8 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script>
     window.onload = function() {
-      var mess = document.querySelector('.mess');
-      mess.scrollTop = mess.scrollHeight;
+      let message_box = document.getElementById('message-box');
+      message_box.scrollTop = message_box.scrollHeight;
     };
     {% if text %}
     setTimeout(function() {
@@ -17,40 +17,31 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
 }, 7000);
     {% endif %}
   </script>
-  <style>
-    
-    body {
-      background-color: black;
-      color: white;
-    }
-    
-    pre.code {
-      background-color: #333;
-      color: green;
-      border: 1px solid #ccc;
-      padding: 10px;
-      margin: 10px 0;
-      overflow: auto;
-      font-family: monospace;
-      font-size: 0.80em;
-    }
-    
-    .form-wrapper {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background-color: black;
-      color: white;
-      box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2);
-      z-index: 9999;
-      padding: 5px;
-    }
+  <link rel="stylesheet" href="/static/style.css">
+  <!-- <style>
+  
 
     .input-wrapper {
       display: flex;
       justify-content: flex-start;
       position: relative;
+    }
+
+    
+
+    @media screen and (max-width: 768px) {
+    .submit-btn {
+      right: 4%;
+      font-size: 1.3em;
+      }
+    }
+
+    .submit-btn::before {
+      content: '\2192';
+    }
+    
+    .reset-btn::before {
+      content: "\1F5D1";
     }
 
     .reset-btn {
@@ -87,7 +78,7 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
       max-width: 80%;
     }
     
-    .message-ass {
+    .assistant-message {
       background-color: #33334d;
       border-radius: 10px;
       box-shadow: 0px 0px 4px 2px rgba(0,0,0,0.2);
@@ -103,12 +94,12 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
       max-width: 80%;
     }
     
-    .message-ass:last-child {
+    .assistant-message:last-child {
       margin-bottom: 45px;
     }
     
     input[type="text"] {
-      width: 85%;
+      width: 83%;
       padding-left: 20px;
       background-color: black;
       color: white;
@@ -118,34 +109,6 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
       position: relative;
       border: 2px solid blue;
     }
-
-  .submit-btn {
-      position: absolute;
-      top: 50%;
-      right: 11%;
-      transform: translateY(-50%);
-      border-radius: 50%;
-      background-color: #33334d;
-      border: 0px;
-      color: white;
-      font-size: 1.4em;
-      cursor: pointer;
-    }
-
-    @media screen and (max-width: 768px) {
-  .submit-btn {
-    right: 4%;
-    font-size: 1.3em;
-      }
-    }
-
-  .submit-btn::before {
-    content: '\2192';
-    }
-    
-  .reset-btn::before {
-    content: "\1F5D1";
-    }
     
   .reset-text {
     color: red;
@@ -154,7 +117,7 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
     transform: translateY(100%);
     }
     
-  .mess {
+  .message-box {
     position: absolute;
     padding-left: 20px;
     padding-right: 20px;
@@ -175,24 +138,24 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
     margin-top: 10px;
     margin-bottom: 10px;
   }
-  </style>
-  <title>Therapist Chat</title>
+  </style> -->
+  <title>{{ title }} Chat</title>
 </head>
 <body>
   
   <center>
     <div class="form-wrapper">
-      <form action="/" method="post">
+      <form action="/respond" method="post">
         <div class="input-wrapper">
           <a href="/reset" class="reset-btn"></a>
-          <input type="text" name="message" placeholder="Message" required>
+          <input class ="input-box" type="text" name="message" placeholder="Message" required>
         </div>
         <button type="submit" id="submit-btn" class="submit-btn"></button>
       </form>
     </div>
   </center>
-  <div class="title"><span>Therapist AI</span></div>
-  <div class="mess">
+  <div class="title"><span>{{ title }}</span></div>
+  <div class="message-box" id="message-box">
     {% if text %}
     <h1 class="reset-text" id="error">{{ text }}</h1>
     {% endif %}
@@ -200,11 +163,11 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
     {% if message.role != 'system' %}
       {% if message.role == 'assistant' %}
               {% if '<pre>' in message.content %}
-              <div class="message-ass">
+              <div class="assistant-message">
                 {{ message.content|replace('<pre>', '<pre class="code">')|safe }}</pre>
               </div>
               {% else %}
-              <div class="message-ass">
+              <div class="assistant-message">
                 {{ message.content|safe }}
               </div>
               {% endif %}
