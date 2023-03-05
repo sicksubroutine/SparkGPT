@@ -6,182 +6,82 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script>
     window.onload = function() {
-      window.scrollTo(0,document.body.scrollHeight);
+      var mess = document.querySelector('.mess');
+      mess.scrollTop = mess.scrollHeight;
     };
+    {% if text %}
+    setTimeout(function() {
+  const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+window.history.replaceState({ path: newUrl }, '', newUrl);
+  document.getElementById("error").style.display = "none";
+}, 7000);
+    {% endif %}
   </script>
   <style>
     body {
       background-color: black;
       color: white;
     }
-    .role {
-      color: red;
-    }
-    pre.code {
-      background-color: #333;
-      color: #f8f8f8;
-      border: 1px solid #ccc;
-      padding: 10px;
-      margin: 10px 0;
-      overflow: auto;
-      width: 75%;
-      font-family: monospace;
-      font-size: 0.80em;
-
-    }
-    #mess {
-      padding: 20px;
-    }
-
-    .form-wrapper {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background-color: black;
-      color: white;
-      box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2);
-      z-index: 9999;
-    }
-
-    .message-ass {
-      margin: 10px;
-      background-color: #33334d;
-      border-radius: 10px;
-      box-shadow: 0px 0px 4px 2px rgba(0,0,0,0.2);
-      width: 70%;
-      font-size: 1.2em;
-      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-      float: left;
-      padding-left: 5px;
-      padding-right: 5px;
-      padding-bottom: 20px;
-    }
-
-    input {
-      width: 80%;
-      background-color: black;
-      color: white;
-    }
-
-    .input-wrapper {
-      display: flex;
-      justify-content: flex-start;
-      position: relative;
-    }
-
-    .reset-btn {
-      font-size: 20px;
-      margin-right: 10px;
-      color: #333;
-      background-color: transparent;
-      border: none;
-      cursor: pointer;
-      display: inline-block;
-    }
-
-    .reset-btn:hover {
-      color: #000;
-    }
-    .user-message {
-        background-color: blue;
-        color: white;
-        text-align: right;
-        border-radius: 10px;
-        margin: 10px;
-        box-shadow: 0px 0px 4px 2px rgba(0,0,0,0.2);
-        width: 50%;
-        font-size: 1.2em;
-        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-        float: right;
-        padding-left: 5px;
-        padding-right: 5px;
-      }
-    input[type="text"] {
-      width: calc(80% - 40px);
-      background-color: black;
-      color: white;
-      padding: 10px;
-      border-radius: 30px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-      position: relative;
-      border: 2px solid blue;
-    }
-
-    input[type="submit"] {
-      width: 40px;
-      height: 40px;
-      background-color: #33334d;
-      color: white;
-      border: none;
-      border-radius: 50%;
-      font-size: 1.5em;
-      position: absolute;
-      right: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      cursor: pointer;
-    }
-
-    input[type="submit"]::before {
-      content: '\2192';
-    }
     .submit-btn {
-  position: absolute;
-  top: 8%;
-  border-radius: 50%;
-  right: 17%;
-  background-color: #33334d;
-  border: 0px;
-  color: white;
-  font-size: 1.4em;
-  cursor: pointer;
-  }
-
-/* Add the arrow to the message submit button */
-.submit-btn::before {
-  content: '\2192';
-}
+      color: white;
+      border-radius: 10px;
+      font-weight: bold;
+      box-shadow: 0px 0px 4px 2px rgba(0,0,0,0.2);
+      transition: all 0.3s ease-in-out;
+      background: linear-gradient(90deg, rgba(255,0,0,1) 0%, rgba(0,0,255,1) 60%);
+      font-family: Arial, sans-serif; font-size: 14px;
+      display: inline-block;
+      margin-right: 10px;
+      padding: 10px 32px;
+      margin: 2px auto;
+    }
+    .submit-btn:hover {
+      border-radius: 10px;
+      font-weight: bold;
+      box-shadow: 0px 0px 4px 2px rgba(0,0,0,0.2);
+      transition: all 0.3s ease-in-out;
+      background: linear-gradient(90deg, rgba(0,0,255,0.5) 0%, rgba(255,0,0,0.25) 60%);
+      font-family: Arial, sans-serif; font-size: 14px;
+      display: inline-block;
+      margin-right: 10px; 
+      padding: 5px 32px;
+      margin: 2px auto;
+    }
+    .prompt {
+      border-radius: 5px;
+      background: linear-gradient(90deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0.75) 50%);
+      color: #fff;
+      box-shadow: 0px 0px 4px 2px rgba(255,0,0,0.2);
+      padding: 10px;
+      font-family: Arial, sans-serif; font-size: 14px;
+    }
   </style>
-  <title>Therapist Chat</title>
+  <title>ChatGPT Prompt Select</title>
 </head>
 <body>
   <center>
     <div class="form-wrapper">
-      <form action="/" method="post">
+      <form action="/login" method="post">
         <div class="input-wrapper">
-          <a href="/reset" class="reset-btn">&#x27F3;</a>
-          <input type="text" name="message" placeholder="Message" required>
-          
+          <label for="prompt">Choose a prompt:</label><br>
+          <select name="prompt" class="prompt">
+            <option value="prompt4chan">4Chan AI</option>
+            <option value="IFSPrompt">IFS AI</option>
+            <option value="KetoPrompt">Keto AI</option>
+            <option value="PythonPrompt">Python AI</option>
+            <option value="TherapistPrompt">Therapist AI</option>
+          </select>
+          <button type="submit" id="submit-btn" class="submit-btn">Submit</button>
         </div>
-        <button type="submit" id="submit-btn" class="submit-btn"></button>
+        
       </form>
     </div>
   </center>
-  <div id="mess">
+  
+  <div class="mess">
     {% if text %}
-    <span class="role">{{ text }}</span>
+    <h1 class="reset-text" id="error">{{ text }}</h1>
     {% endif %}
-  {% for message in messages %}
-    {% if message.role != 'system' %}
-        
-            {% if message.role == 'assistant' %}
-          <div class="message-ass">
-                <!--<span class="role">AI:</span>-->
-              {% if '<pre>' in message.content %}
-                {{ message.content|replace('<pre>', '<pre class="code">')|safe }}</pre>
-              {% else %}
-                {{ message.content|safe }}
-              {% endif %}
-                  </div>
-            {% elif message.role == 'user' %}
-                  <div class="user-message">
-                <!--<span class="role">Human:</span>--> {{ message.content|safe }}
-            {% endif %}
-                  </div>
-    {% endif %}
-       </div>
-{% endfor %}
-
+  </div>
 </body>
 </html>
