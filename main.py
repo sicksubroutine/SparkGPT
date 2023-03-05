@@ -64,7 +64,7 @@ def login():
         db[username] = {
           "username": username,
           "ip_address": ip_address,
-          "messages": [{"role": "system", "content": chosen_prompt"}]
+          "messages": [{"role": "system", "content": f"{chosen_prompt}"}]
         }
     else:
       users = db.prefix("user")
