@@ -78,8 +78,14 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
             <option value="TherapistPrompt">Therapist AI</option>
           </select>
           <button type="submit" id="submit-btn" class="submit-btn">Submit</button>
+      </form>
         </div>
-        
+        <div>
+          <form action="/login" method="post">
+          <textarea type="text" name="custom_prompt" id="text" class="prompt" placeholder="Custom Prompt Text..."></textarea>
+          <button type="submit" class="submit-btn">Submit</button>
+          </form>
+        </div>
       </form>
     </div>
   </center>

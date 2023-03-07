@@ -3,7 +3,8 @@ import openai, os, markdown2
 from tools import random_token, get_IP_Address
 from replit import db
 
-## TODO: Add more prompts. 
+## TODO: Add more prompts.
+## TODO: Add better account system.
 
 TOKEN_LIMIT = 3000
 
@@ -65,10 +66,16 @@ def index():
 def login():
   ip_address = get_IP_Address(request)
   if request.method == 'POST':
-    prompt = request.form.get('prompt')
-    chosen_prompt, title = prompt_choose(prompt)
-    session["title"] = title
-    session["prompt"] = prompt
+    if 'prompt' in request.form:
+      prompt = request.form.get('prompt')
+      chosen_prompt, title = prompt_choose(prompt)
+      session["title"] = title
+      session["prompt"] = prompt
+    elif 'custom_prompt' in request.form:
+      chosen_prompt = request.form.get('custom_prompt')
+      title = "Custom Prompt"
+      session["title"] = title
+      session["prompt"] = chosen_prompt
   if len(request.form) == 0:
     return redirect("/")
   else:
@@ -118,15 +125,11 @@ def respond():
   messages = []
   for observed_dict in msg.value:
     messages.append(observed_dict.value)
-  ## Add a way to strip out older messages to fit within token limit.
   if request.method == 'POST':
     message = request.form.get("message")
     messages.append({"role": "user", "content": message})
   response, token_usage = res(messages)
-  print(f"Total Token Usage after adding current message/response: {token_usage}")
-
   if token_usage > TOKEN_LIMIT:
-    
     oldest_assistant_message = next((msg for msg in messages if msg["role"] == "assistant"), None)
     print(f"Token limit reached. Removing oldest assistant message: {oldest_assistant_message}")
     if oldest_assistant_message:
