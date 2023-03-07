@@ -4,7 +4,8 @@ from tools import random_token, get_IP_Address
 from replit import db
 
 ## TODO: Add more prompts. 
-## TODO: Account for 4096 token limit.
+
+TOKEN_LIMIT = 3000
 
 users = db.prefix("user")
 print(f"Number of Users: {len(users)}")
@@ -17,8 +18,15 @@ openai.api_key = f"{secretKey}"
 
 def res(messages) -> str:
   response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages)
-  print(response["usage"])
-  return response["choices"][0]["message"]["content"]
+  assistant_response = response["choices"][0]["message"]["content"]
+  token_usage = response["usage"]["total_tokens"]
+  return assistant_response, token_usage
+
+def token_check(messages) -> str:
+  response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages)
+  token_usage = response["usage"]["total_tokens"]
+  return token_usage
+  
 
 def prompt_choose(prompt) -> str:
   
@@ -110,10 +118,19 @@ def respond():
   messages = []
   for observed_dict in msg.value:
     messages.append(observed_dict.value)
+  ## Add a way to strip out older messages to fit within token limit.
   if request.method == 'POST':
     message = request.form.get("message")
     messages.append({"role": "user", "content": message})
-  response = res(messages)
+  response, token_usage = res(messages)
+  print(f"Total Token Usage after adding current message/response: {token_usage}")
+
+  if token_usage > TOKEN_LIMIT:
+    
+    oldest_assistant_message = next((msg for msg in messages if msg["role"] == "assistant"), None)
+    print(f"Token limit reached. Removing oldest assistant message: {oldest_assistant_message}")
+    if oldest_assistant_message:
+      messages.remove(oldest_assistant_message) 
   messages.append({"role": "assistant", "content": response})
   users = db.prefix("user")
   for user in users:
