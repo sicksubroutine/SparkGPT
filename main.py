@@ -17,6 +17,7 @@ openai.api_key = f"{secretKey}"
 
 def res(messages) -> str:
   response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages)
+  print(response["usage"])
   return response["choices"][0]["message"]["content"]
 
 def prompt_choose(prompt) -> str:
@@ -84,9 +85,6 @@ def login():
         username = session.get("username")
         db[username]["messages"] = [{"role": "system", "content": chosen_prompt}]
       return redirect("/chat")
-
-
-  
 
 @app.route("/chat", methods=["GET"])
 def chat():
