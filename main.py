@@ -17,26 +17,31 @@ app.secret_key = os.environ['sessionKey']
 secretKey = os.environ['gpt-API']
 openai.api_key = f"{secretKey}"
 
+
 def res(messages) -> str:
-  response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages)
+  response = openai.ChatCompletion.create(model="gpt-3.5-turbo",
+                                          messages=messages)
   assistant_response = response["choices"][0]["message"]["content"]
   token_usage = response["usage"]["total_tokens"]
   return assistant_response, token_usage
 
+
 def token_check(messages) -> str:
-  response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages)
+  response = openai.ChatCompletion.create(model="gpt-3.5-turbo",
+                                          messages=messages)
   token_usage = response["usage"]["total_tokens"]
   return token_usage
-  
+
 
 def prompt_choose(prompt) -> str:
-  
+
   prompt4chan = os.environ['4chanPrompt']
   IFSPrompt = os.environ['IFSPrompt']
   KetoPrompt = os.environ['KetoPrompt']
   PythonPrompt = os.environ['PythonPrompt']
   TherapistPrompt = os.environ['TherapistPrompt']
-  
+  foodMenuPrompt = os.environ['foodMenuPrompt']
+
   if prompt == 'prompt4chan':
     chosen_prompt = prompt4chan
     title = "4Chan AI"
@@ -52,15 +57,20 @@ def prompt_choose(prompt) -> str:
   elif prompt == 'TherapistPrompt':
     chosen_prompt = TherapistPrompt
     title = "Therapist AI"
+  elif prompt == 'foodMenu':
+    chosen_prompt = foodMenuPrompt
+    title = "Food Menu AI"
   else:
     chosen_prompt = None
     title = "I am Error"
   return chosen_prompt, title
 
+
 @app.route("/", methods=["GET"])
 def index():
   text = request.args.get("t")
   return render_template("index.html", text=text)
+
 
 @app.route('/login', methods=['POST', 'GET'])
 def login():
@@ -92,14 +102,21 @@ def login():
         db[username] = {
           "username": username,
           "ip_address": ip_address,
-          "messages": [{"role": "system", "content": chosen_prompt}]
+          "messages": [{
+            "role": "system",
+            "content": chosen_prompt
+          }]
         }
         return redirect("/chat")
     else:
       if session.get("username"):
         username = session.get("username")
-        db[username]["messages"] = [{"role": "system", "content": chosen_prompt}]
+        db[username]["messages"] = [{
+          "role": "system",
+          "content": chosen_prompt
+        }]
       return redirect("/chat")
+
 
 @app.route("/chat", methods=["GET"])
 def chat():
@@ -112,9 +129,13 @@ def chat():
   for observed_dict in msg.value:
     messages.append(observed_dict.value)
   for message in messages:
-    if message["role"]!="system":
-      message["content"] = markdown2.markdown(message["content"], extras=["fenced-code-blocks"])
-  return render_template("chat.html", messages=messages, title=session.get("title"))
+    if message["role"] != "system":
+      message["content"] = markdown2.markdown(message["content"],
+                                              extras=["fenced-code-blocks"])
+  return render_template("chat.html",
+                         messages=messages,
+                         title=session.get("title"))
+
 
 @app.route("/respond", methods=["POST"])
 def respond():
@@ -130,10 +151,13 @@ def respond():
     messages.append({"role": "user", "content": message})
   response, token_usage = res(messages)
   if token_usage > TOKEN_LIMIT:
-    oldest_assistant_message = next((msg for msg in messages if msg["role"] == "assistant"), None)
-    print(f"Token limit reached. Removing oldest assistant message: {oldest_assistant_message}")
+    oldest_assistant_message = next(
+      (msg for msg in messages if msg["role"] == "assistant"), None)
+    print(
+      f"Token limit reached. Removing oldest assistant message: {oldest_assistant_message}"
+    )
     if oldest_assistant_message:
-      messages.remove(oldest_assistant_message) 
+      messages.remove(oldest_assistant_message)
   messages.append({"role": "assistant", "content": response})
   users = db.prefix("user")
   for user in users:
@@ -141,7 +165,7 @@ def respond():
       db[user]["messages"] = messages
       break
   return redirect("/chat")
-  
+
 
 @app.route("/reset")
 def reset_messages():
@@ -153,5 +177,6 @@ def reset_messages():
   db[username]["messages"] = [{"role": "system", "content": f"{prompt}"}]
   session.pop("prompt", None)
   return redirect(f"/?t={text}")
+
 
 app.run(host='0.0.0.0', port=81)
