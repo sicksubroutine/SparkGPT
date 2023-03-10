@@ -4,12 +4,14 @@ from tools import random_token, get_IP_Address
 from replit import db
 
 ## TODO: Add more prompts.
-## TODO: Add better account system.
+## TODO: Design better account system.
 
 TOKEN_LIMIT = 3000
 
 users = db.prefix("user")
 print(f"Number of Users: {len(users)}")
+for user in users:
+  print(db[user]["ip_address"])
 
 app = Flask(__name__, static_url_path='/static')
 
@@ -89,12 +91,13 @@ def login():
   if len(request.form) == 0:
     return redirect("/")
   else:
-    if not session.get("username"):
+    if not session.get("username") or session.get("username") == None:
       users = db.prefix("user")
       for user in users:
         if db[user]["ip_address"] == ip_address:
           session["username"] = db[user]["username"]
           session["ip_address"] = ip_address
+          return redirect("/chat")
       else:
         username = "user" + random_token()
         session["username"] = username
@@ -109,7 +112,8 @@ def login():
         }
         return redirect("/chat")
     else:
-      if session.get("username"):
+
+      if session.get("username") and session.get("username") != None:
         username = session.get("username")
         db[username]["messages"] = [{
           "role": "system",
@@ -120,6 +124,7 @@ def login():
 
 @app.route("/chat", methods=["GET"])
 def chat():
+  print(session.get("username"))
   if not session.get("username"):
     return redirect("/")
   username = session["username"]
@@ -177,6 +182,15 @@ def reset_messages():
   db[username]["messages"] = [{"role": "system", "content": f"{prompt}"}]
   session.pop("prompt", None)
   return redirect(f"/?t={text}")
+
+
+@app.route("/logout")
+def logout():
+  session.pop("username", None)
+  session.pop("ip_address", None)
+  session.pop("title", None)
+  session.pop("prompt", None)
+  return redirect("/")
 
 
 app.run(host='0.0.0.0', port=81)
