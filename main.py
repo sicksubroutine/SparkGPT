@@ -1,6 +1,6 @@
 from flask import Flask, render_template, session, request, redirect
 import openai, os, markdown2
-from tools import random_token, get_IP_Address
+from tools import random_token, get_IP_Address, uuid_func
 from replit import db
 
 ## TODO: Add more prompts.
@@ -11,8 +11,7 @@ TOKEN_LIMIT = 3000
 users = db.prefix("user")
 print(f"Number of Users: {len(users)}")
 for user in users:
-  print(db[user]["ip_address"])
-
+  print(db[user])
 app = Flask(__name__, static_url_path='/static')
 
 app.secret_key = os.environ['sessionKey']
@@ -77,6 +76,7 @@ def index():
 @app.route('/login', methods=['POST', 'GET'])
 def login():
   ip_address = get_IP_Address(request)
+  uuid = uuid_func()
   if request.method == 'POST':
     if 'prompt' in request.form:
       prompt = request.form.get('prompt')
@@ -94,17 +94,20 @@ def login():
     if not session.get("username") or session.get("username") == None:
       users = db.prefix("user")
       for user in users:
-        if db[user]["ip_address"] == ip_address:
+        if db[user]["ip_address"] == ip_address and uuid == db[user]["uuid"]:
           session["username"] = db[user]["username"]
           session["ip_address"] = ip_address
+          session[uuid] = db[user]["uuid"]
           return redirect("/chat")
       else:
         username = "user" + random_token()
         session["username"] = username
         session["ip_address"] = ip_address
+        session["uuid"] = uuid
         db[username] = {
           "username": username,
           "ip_address": ip_address,
+          "uuid": uuid,
           "messages": [{
             "role": "system",
             "content": chosen_prompt
@@ -112,7 +115,6 @@ def login():
         }
         return redirect("/chat")
     else:
-
       if session.get("username") and session.get("username") != None:
         username = session.get("username")
         db[username]["messages"] = [{
@@ -190,7 +192,7 @@ def logout():
   session.pop("ip_address", None)
   session.pop("title", None)
   session.pop("prompt", None)
+  session.pip("uuid", None)
   return redirect("/")
-
 
 app.run(host='0.0.0.0', port=81)
