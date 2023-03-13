@@ -1,17 +1,16 @@
 from flask import Flask, render_template, session, request, redirect
 import openai, os, markdown2
-from tools import random_token, get_IP_Address, uuid_func
+from tools import random_token, get_IP_Address, uuid_func, hash_func
 from replit import db
 
 ## TODO: Add more prompts.
-## TODO: Design better account system.
+## TODO: Continue work on idenity system.
 
 TOKEN_LIMIT = 3000
 
 users = db.prefix("user")
 print(f"Number of Users: {len(users)}")
-for user in users:
-  print(db[user])
+
 app = Flask(__name__, static_url_path='/static')
 
 app.secret_key = os.environ['sessionKey']
@@ -77,6 +76,9 @@ def index():
 def login():
   ip_address = get_IP_Address(request)
   uuid = uuid_func()
+  user_agent = request.headers.get('User-Agent')
+  username = session.get('username')
+  identity_hash = hash_func(ip_address, uuid, user_agent)
   if request.method == 'POST':
     if 'prompt' in request.form:
       prompt = request.form.get('prompt')
@@ -91,7 +93,7 @@ def login():
   if len(request.form) == 0:
     return redirect("/")
   else:
-    if not session.get("username") or session.get("username") == None:
+    if not username or username == None:
       users = db.prefix("user")
       for user in users:
         if db[user]["ip_address"] == ip_address and uuid == db[user]["uuid"]:
@@ -104,10 +106,13 @@ def login():
         session["username"] = username
         session["ip_address"] = ip_address
         session["uuid"] = uuid
+        session["identity_hash"] = identity_hash
         db[username] = {
           "username": username,
           "ip_address": ip_address,
           "uuid": uuid,
+          "user_agent": user_agent,
+          "identity_hash": identity_hash,
           "messages": [{
             "role": "system",
             "content": chosen_prompt
@@ -192,7 +197,9 @@ def logout():
   session.pop("ip_address", None)
   session.pop("title", None)
   session.pop("prompt", None)
-  session.pip("uuid", None)
+  session.pop("uuid", None)
+  session.pop("identity_hash", None)
   return redirect("/")
+
 
 app.run(host='0.0.0.0', port=81)

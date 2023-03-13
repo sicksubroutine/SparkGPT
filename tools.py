@@ -1,4 +1,4 @@
-import string, random, uuid
+import string, random, uuid, hashlib
 
 
 def random_token() -> str:
@@ -12,3 +12,7 @@ def get_IP_Address(request):
 def uuid_func():
   device_id = f"{uuid.uuid1()}"
   return device_id
+
+def hash_func(*args):
+  return hashlib.sha256(f"{''.join(args)}").hexdigest()
+  
