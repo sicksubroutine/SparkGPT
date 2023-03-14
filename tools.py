@@ -14,5 +14,9 @@ def uuid_func():
   return device_id
 
 def hash_func(*args):
-  return hashlib.sha256(f"{''.join(args)}").hexdigest()
+  #encode args
+  args_str = ''.join(args)
+  #hash args
+  hash_str = hashlib.sha256(args_str.encode()).hexdigest()
+  return hash_str
   

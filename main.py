@@ -131,7 +131,6 @@ def login():
 
 @app.route("/chat", methods=["GET"])
 def chat():
-  print(session.get("username"))
   if not session.get("username"):
     return redirect("/")
   username = session["username"]
