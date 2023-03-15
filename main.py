@@ -10,6 +10,8 @@ TOKEN_LIMIT = 3000
 
 users = db.prefix("user")
 print(f"Number of Users: {len(users)}")
+for user in users:
+  print(db[user])
 
 app = Flask(__name__, static_url_path='/static')
 
@@ -96,10 +98,12 @@ def login():
     if not username or username == None:
       users = db.prefix("user")
       for user in users:
-        if db[user]["ip_address"] == ip_address and uuid == db[user]["uuid"]:
+        if identity_hash == db[user]["identity_hash"]:
           session["username"] = db[user]["username"]
           session["ip_address"] = ip_address
-          session[uuid] = db[user]["uuid"]
+          session["uuid"] = uuid
+          session["identity_hash"] = identity_hash
+          session["user_agent"] = user_agent
           return redirect("/chat")
       else:
         username = "user" + random_token()
