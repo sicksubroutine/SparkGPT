@@ -169,3 +169,9 @@ pre.code {
   margin-top: 10px;
   margin-bottom: 10px;
 }
+.export-link {
+  float: right;
+  color: white;
+  text-decoration: none;
+  margin-right: 5px;
+}

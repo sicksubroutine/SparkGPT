@@ -1,5 +1,5 @@
 from flask import Flask, render_template, session, request, redirect
-import openai, os, markdown2
+import openai, os, markdown2, random
 from tools import random_token, get_IP_Address, uuid_func, hash_func
 from replit import db
 
@@ -10,15 +10,12 @@ TOKEN_LIMIT = 3000
 
 users = db.prefix("user")
 print(f"Number of Users: {len(users)}")
-for user in users:
-  print(db[user])
 
 app = Flask(__name__, static_url_path='/static')
 
 app.secret_key = os.environ['sessionKey']
 secretKey = os.environ['gpt-API']
 openai.api_key = f"{secretKey}"
-
 
 def res(messages) -> str:
   response = openai.ChatCompletion.create(model="gpt-3.5-turbo",
@@ -192,6 +189,26 @@ def reset_messages():
   db[username]["messages"] = [{"role": "system", "content": f"{prompt}"}]
   session.pop("prompt", None)
   return redirect(f"/?t={text}")
+
+
+@app.route("/export")
+def export_messages():
+  if not session.get("username"):
+    return redirect("/")
+  username = session["username"]
+  messages = db[username]["messages"]
+  markdown = ""
+  for message in messages:
+    if message['role'] == 'system':
+      markdown += f"# {message['content']}\n\n"
+    elif message['role'] == 'user':
+      markdown += f"**User:** {message['content']}\n\n"
+    elif message['role'] == 'assistant':
+      markdown += f"**Assistant:** {message['content']}\n\n"
+  random_num = random.randint(100000, 999999)
+  with open(f"conversation_{random_num}.md", "w") as f:
+    f.write(markdown)
+  return redirect("/chat")
 
 
 @app.route("/logout")
