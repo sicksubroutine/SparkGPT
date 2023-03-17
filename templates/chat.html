@@ -14,7 +14,7 @@
   const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
 window.history.replaceState({ path: newUrl }, '', newUrl);
   document.getElementById("error").style.display = "none";
-}, 7000);
+}, 3000);
     {% endif %}
   </script>
   <link rel="stylesheet" href="/static/style.css">
@@ -35,9 +35,7 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
   </center>
   <div class="title"><span>{{ title }}</span><a class="export-link" href="/export">&#x2601;</a></div>
   <div class="message-box" id="message-box">
-    {% if text %}
-    <h1 class="reset-text" id="error">{{ text }}</h1>
-    {% endif %}
+    
   {% for message in messages %}
     {% if message.role != 'system' %}
       {% if message.role == 'assistant' %}
@@ -58,6 +56,9 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
             {% endif %}      
     {% endif %}
 {% endfor %}
+    {% if text %}
+    <h1 class="reset-text" id="error">{{ text }}</h1>
+    {% endif %}
   </div>
 </body>
 </html>

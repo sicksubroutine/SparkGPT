@@ -1,10 +1,9 @@
-from flask import Flask, render_template, session, request, redirect
+from flask import Flask, render_template, session, request, redirect, send_file
 import openai, os, markdown2, random
 from tools import random_token, get_IP_Address, uuid_func, hash_func
 from replit import db
 
 ## TODO: Add more prompts.
-## TODO: Continue work on idenity system.
 
 TOKEN_LIMIT = 3000
 
@@ -16,6 +15,7 @@ app = Flask(__name__, static_url_path='/static')
 app.secret_key = os.environ['sessionKey']
 secretKey = os.environ['gpt-API']
 openai.api_key = f"{secretKey}"
+
 
 def res(messages) -> str:
   response = openai.ChatCompletion.create(model="gpt-3.5-turbo",
@@ -134,9 +134,9 @@ def login():
 def chat():
   if not session.get("username"):
     return redirect("/")
+  text = request.args.get("t")
   username = session["username"]
   msg = db[username]["messages"]
-
   messages = []
   for observed_dict in msg.value:
     messages.append(observed_dict.value)
@@ -146,7 +146,8 @@ def chat():
                                               extras=["fenced-code-blocks"])
   return render_template("chat.html",
                          messages=messages,
-                         title=session.get("title"))
+                         title=session.get("title"),
+                         text=text)
 
 
 @app.route("/respond", methods=["POST"])
@@ -206,9 +207,10 @@ def export_messages():
     elif message['role'] == 'assistant':
       markdown += f"**Assistant:** {message['content']}\n\n"
   random_num = random.randint(100000, 999999)
-  with open(f"conversation_{random_num}.md", "w") as f:
+  filename = f"conversation_{random_num}.md"
+  with open(filename, "w") as f:
     f.write(markdown)
-  return redirect("/chat")
+  return send_file(filename, as_attachment=True)
 
 
 @app.route("/logout")
