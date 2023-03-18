@@ -56,6 +56,10 @@ def prompt_get(prompt) -> str:
       "prompt": os.environ['HelpfulPrompt'],
       "title": "General AI"
     },
+    "AI_Talks_To_Self": {
+      "prompt": os.environ['TalkToSelfPrompt'],
+      "title": "Recursive AI"
+    },
   }
   return prompt_dict.get(prompt, {
     'prompt': 'Invalid Prompt',

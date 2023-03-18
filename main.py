@@ -1,10 +1,10 @@
 from flask import Flask, render_template, session, request, redirect, send_file
-import openai, os, markdown2, random
+import openai, os, markdown2
 from tools import random_token, get_IP_Address, uuid_func, hash_func, prompt_get
 from replit import db
 
 ## TODO: Add more prompts.
-## TODO: Be able to have different saved conversations.
+## TODO: Be able to have different saved conversations running concurrently?
 
 TOKEN_LIMIT = 3000
 
@@ -167,6 +167,29 @@ def reset_messages():
   return redirect(f"/?t={text}")
 
 
+def summary_of_messages():
+  if not session.get("username"):
+    return redirect("/")
+  username = session["username"]
+  messages = db[username]["messages"]
+  summary_msgs = ""
+  for message in messages:
+    if message["role"] == "user":
+      summary_msgs += message["content"]
+    elif message["role"] == "assistant":
+      summary_msgs += f"{message['content']}"
+  prompt = "The next message should be summerized into five words or less. No explanation or elaboration. Response needs to be five words or less."
+  arr = [
+    {"role": "system", "content": f"{prompt}"},
+    {"role": "user", "content": summary_msgs}
+  ]
+  response, tokens = res(arr)
+  response = response.split()
+  response = "_".join(response)
+  response = response.replace(".", "")
+  return response
+
+
 @app.route("/export")
 def export_messages():
   if not session.get("username"):
@@ -181,9 +204,9 @@ def export_messages():
       markdown += f"**User:** {message['content']}\n\n"
     elif message['role'] == 'assistant':
       markdown += f"**Assistant:** {message['content']}\n\n"
-  random_num = random.randint(100000, 999999)
-  filename = f"conversation_{random_num}.md"
-  with open(filename, "w") as f:
+  filename = f"{summary_of_messages()}.md"
+  path = "/static/markdown/"
+  with open(f"{path}{filename}", "w") as f:
     f.write(markdown)
   return send_file(filename, as_attachment=True)
 

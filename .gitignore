@@ -17,5 +17,3 @@ pyproject.toml
 .upm/
 replit.nix
 .config/
-.tutorial/
-.game-list
