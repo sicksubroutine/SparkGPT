@@ -1,9 +1,10 @@
 from flask import Flask, render_template, session, request, redirect, send_file
 import openai, os, markdown2, random
-from tools import random_token, get_IP_Address, uuid_func, hash_func
+from tools import random_token, get_IP_Address, uuid_func, hash_func, prompt_get
 from replit import db
 
 ## TODO: Add more prompts.
+## TODO: Be able to have different saved conversations.
 
 TOKEN_LIMIT = 3000
 
@@ -33,36 +34,7 @@ def token_check(messages) -> str:
 
 
 def prompt_choose(prompt) -> str:
-
-  prompt4chan = os.environ['4chanPrompt']
-  IFSPrompt = os.environ['IFSPrompt']
-  KetoPrompt = os.environ['KetoPrompt']
-  PythonPrompt = os.environ['PythonPrompt']
-  TherapistPrompt = os.environ['TherapistPrompt']
-  foodMenuPrompt = os.environ['foodMenuPrompt']
-
-  if prompt == 'prompt4chan':
-    chosen_prompt = prompt4chan
-    title = "4Chan AI"
-  elif prompt == 'IFSPrompt':
-    chosen_prompt = IFSPrompt
-    title = "Internal Family Systems AI"
-  elif prompt == 'KetoPrompt':
-    chosen_prompt = KetoPrompt
-    title = "Keto AI"
-  elif prompt == 'PythonPrompt':
-    chosen_prompt = PythonPrompt
-    title = "Python AI"
-  elif prompt == 'TherapistPrompt':
-    chosen_prompt = TherapistPrompt
-    title = "Therapist AI"
-  elif prompt == 'foodMenu':
-    chosen_prompt = foodMenuPrompt
-    title = "Food Menu AI"
-  else:
-    chosen_prompt = None
-    title = "I am Error"
-  return chosen_prompt, title
+  return prompt_get(prompt)
 
 
 @app.route("/", methods=["GET"])
@@ -81,7 +53,9 @@ def login():
   if request.method == 'POST':
     if 'prompt' in request.form:
       prompt = request.form.get('prompt')
-      chosen_prompt, title = prompt_choose(prompt)
+      prompt_dict = prompt_choose(prompt)
+      chosen_prompt = prompt_dict["prompt"]
+      title = prompt_dict["title"]
       session["title"] = title
       session["prompt"] = prompt
     elif 'custom_prompt' in request.form:
@@ -121,7 +95,8 @@ def login():
         }
         return redirect("/chat")
     else:
-      if session.get("username") and session.get("username") != None:
+      if session.get("username") and session.get(
+          "username") != None and session.get("identity_hash") != None:
         username = session.get("username")
         db[username]["messages"] = [{
           "role": "system",
