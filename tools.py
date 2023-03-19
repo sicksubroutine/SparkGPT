@@ -18,9 +18,7 @@ def uuid_func():
 
 
 def hash_func(*args):
-  #encode args
   args_str = ''.join(args)
-  #hash args
   hash_str = hashlib.sha256(args_str.encode()).hexdigest()
   return hash_str
 
@@ -65,3 +63,10 @@ def prompt_get(prompt) -> str:
     'prompt': 'Invalid Prompt',
     'title': 'Invalid title'
   })
+
+
+def check_old_markdown():
+  path = "static/markdown/"
+  for filename in os.listdir(path):
+    if filename.endswith(".md"):
+      os.remove(path + filename)

@@ -1,6 +1,6 @@
 from flask import Flask, render_template, session, request, redirect, send_file
 import openai, os, markdown2
-from tools import random_token, get_IP_Address, uuid_func, hash_func, prompt_get
+from tools import random_token, get_IP_Address, uuid_func, hash_func, prompt_get, check_old_markdown
 from replit import db
 
 ## TODO: Add more prompts.
@@ -173,9 +173,11 @@ def summary_of_messages():
   username = session["username"]
   messages = db[username]["messages"]
   summary_msgs = ""
-  for message in messages:
+  for index, message in enumerate(messages):
     if message["role"] == "user":
       summary_msgs += message["content"]
+      if index > 2:
+        break
     elif message["role"] == "assistant":
       summary_msgs += f"{message['content']}"
   prompt = "The next message should be summerized into five words or less. No explanation or elaboration. Response needs to be five words or less."
@@ -187,6 +189,7 @@ def summary_of_messages():
   response = response.split()
   response = "_".join(response)
   response = response.replace(".", "")
+  response = response.replace(",", "")
   return response
 
 
@@ -194,6 +197,7 @@ def summary_of_messages():
 def export_messages():
   if not session.get("username"):
     return redirect("/")
+  check_old_markdown()
   username = session["username"]
   messages = db[username]["messages"]
   markdown = ""
@@ -205,10 +209,11 @@ def export_messages():
     elif message['role'] == 'assistant':
       markdown += f"**Assistant:** {message['content']}\n\n"
   filename = f"{summary_of_messages()}.md"
-  path = "/static/markdown/"
-  with open(f"{path}{filename}", "w") as f:
+  path = "static/markdown/"
+  path_filename = path + filename
+  with open(path_filename, "w") as f:
     f.write(markdown)
-  return send_file(filename, as_attachment=True)
+  return send_file(path_filename, as_attachment=True)
 
 
 @app.route("/logout")
