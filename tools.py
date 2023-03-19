@@ -46,7 +46,7 @@ def prompt_get(prompt) -> str:
       "prompt": os.environ['TherapistPrompt'],
       "title": "Therapist AI"
     },
-    "foodMenu": {
+    "foodMenuPrompt": {
       "prompt": os.environ['foodMenuPrompt'],
       "title": "Food Menu AI"
     },

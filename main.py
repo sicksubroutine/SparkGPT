@@ -19,16 +19,14 @@ openai.api_key = f"{secretKey}"
 
 
 def res(messages) -> str:
-  response = openai.ChatCompletion.create(model="gpt-3.5-turbo",
-                                          messages=messages)
+  response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages)
   assistant_response = response["choices"][0]["message"]["content"]
   token_usage = response["usage"]["total_tokens"]
   return assistant_response, token_usage
 
 
 def token_check(messages) -> str:
-  response = openai.ChatCompletion.create(model="gpt-3.5-turbo",
-                                          messages=messages)
+  response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages)
   token_usage = response["usage"]["total_tokens"]
   return token_usage
 
@@ -117,8 +115,7 @@ def chat():
     messages.append(observed_dict.value)
   for message in messages:
     if message["role"] != "system":
-      message["content"] = markdown2.markdown(message["content"],
-                                              extras=["fenced-code-blocks"])
+      message["content"] = markdown2.markdown(message["content"], extras=["fenced-code-blocks"])
   return render_template("chat.html",
                          messages=messages,
                          title=session.get("title"),
@@ -175,10 +172,12 @@ def summary_of_messages():
   summary_msgs = ""
   for index, message in enumerate(messages):
     if message["role"] == "user":
-      summary_msgs += message["content"]
       if index > 2:
         break
+      summary_msgs += message["content"]
     elif message["role"] == "assistant":
+      if index > 2:
+        break
       summary_msgs += f"{message['content']}"
   prompt = "The next message should be summerized into five words or less. No explanation or elaboration. Response needs to be five words or less."
   arr = [
