@@ -19,6 +19,7 @@ openai.api_key = f"{secretKey}"
 
 
 def res(messages) -> str:
+  print("Sending API call to OpenAI...")
   response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages)
   assistant_response = response["choices"][0]["message"]["content"]
   token_usage = response["usage"]["total_tokens"]
@@ -185,7 +186,7 @@ def summary_of_messages():
     {"role": "user", "content": summary_msgs}
   ]
   response, tokens = res(arr)
-  response = response.split()
+  response = response.split().capitalize()
   response = "_".join(response)
   response = response.replace(".", "")
   response = response.replace(",", "")
