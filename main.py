@@ -186,7 +186,7 @@ def summary_of_messages():
     {"role": "user", "content": summary_msgs}
   ]
   response, tokens = res(arr)
-  response = response.split().capitalize()
+  response = response.split()
   response = "_".join(response)
   response = response.replace(".", "")
   response = response.replace(",", "")
