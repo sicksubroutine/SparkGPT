@@ -8,6 +8,15 @@
     window.onload = function() {
       let message_box = document.getElementById('message-box');
       message_box.scrollTop = message_box.scrollHeight;
+      const textarea = document.querySelector(".input-box")
+      const submitButton = document.getElementById("submit-btn");
+
+    textarea.addEventListener("keydown", function(event) {
+    if (event.key === "Enter") {
+      event.preventDefault(); 
+      submitButton.click();
+      }
+    });
     };
     {% if text %}
     setTimeout(function() {
@@ -17,6 +26,7 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
 }, 3000);
     {% endif %}
   </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
   <link rel="stylesheet" href="/static/style.css">
   <title>{{ title }} Chat</title>
 </head>
@@ -26,10 +36,10 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
     <div class="form-wrapper">
       <form action="/respond" method="post">
         <div class="input-wrapper">
-          <a href="/reset" class="reset-btn"></a>
-          <input class ="input-box" type="text" name="message" placeholder="Message" required>
+          <a href="/reset" class="reset-btn"><i class="fa fa-undo" aria-hidden="true"></i></a>
+          <textarea class ="input-box" name="message" placeholder="Enter a message here..." required></textarea>
         </div>
-        <button type="submit" id="submit-btn" class="submit-btn"></button>
+        <button type="submit" id="submit-btn" class="submit-btn"><i class="fa fa-paper-plane"></i></button>
       </form>
     </div>
   </center>
