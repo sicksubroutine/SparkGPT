@@ -13,7 +13,8 @@
     setTimeout(function() {
   const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
 window.history.replaceState({ path: newUrl }, '', newUrl);
-  document.getElementById("error").style.display = "none";
+
+document.getElementById("black-box").style.display = "none";      document.getElementById("error").style.display = "none";
 }, 3000);
     {% endif %}
   </script>
@@ -56,11 +57,22 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
       font-family: Arial, sans-serif; font-size: 14px;
     }
     .reset-text {
-  color: red;
-  text-align: center;
-  font-size: 4em;
-  transform: translateY(100%);
-}
+      color: red;
+      text-align: center;
+      font-size: 4em;
+  }
+  #black-box {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 25%; 
+      height: 15%;
+      background-color: black;
+      z-index: 9999;
+      border: 2px solid white;
+      border-radius: 10px;
+    }
   </style>
   <title>ChatGPT Prompt Select</title>
 </head>
@@ -92,11 +104,15 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
       </form>
     </div>
   </center>
+
+  {% if text %}
+  <div id="black-box">
+    <h1 class="reset-text" id="error">{{ text }}</h1>
+    </div>
+    {% endif %}
   
   <div class="mess">
-    {% if text %}
-    <h1 class="reset-text" id="error">{{ text }}</h1>
-    {% endif %}
+    
   </div>
 </body>
 </html>

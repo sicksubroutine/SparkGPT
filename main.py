@@ -26,14 +26,12 @@ def res(messages) -> str:
                                           messages=messages)
   assistant_response = response["choices"][0]["message"]["content"]
   token_usage = response["usage"]["total_tokens"]
+  # TODO: Add a check for errors.
+  # check if response is HTTP error code
+  #if response["status"] == "error":
+  #  print(f"Error: {response['status']}")
+  #  return "Error"
   return assistant_response, token_usage
-
-
-def token_check(messages) -> str:
-  response = openai.ChatCompletion.create(model="gpt-3.5-turbo",
-                                          messages=messages)
-  token_usage = response["usage"]["total_tokens"]
-  return token_usage
 
 
 def prompt_choose(prompt) -> str:
@@ -43,7 +41,14 @@ def prompt_choose(prompt) -> str:
 @app.route("/", methods=["GET"])
 def index():
   text = request.args.get("t")
-  return render_template("index.html", text=text)
+  if session.get("username"):
+    username = session["username"]
+    users = db.prefix("user")
+    for user in users:
+      if db[user]["username"] == username:
+        # Get the list of conversations
+        pass
+  return render_template("index.html", text=text, conversations=False)
 
 
 @app.route('/login', methods=['POST', 'GET'])
