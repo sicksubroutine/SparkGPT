@@ -5,11 +5,13 @@ from replit import db
 
 ## TODO: Add more prompts.
 ## TODO: Be able to have different saved conversations running concurrently?
+# TODO: List current conversations on homepage.abs
 
 TOKEN_LIMIT = 3000
-
+"""
 users = db.prefix("user")
 print(f"Number of Users: {len(users)}")
+"""
 
 app = Flask(__name__, static_url_path='/static')
 
@@ -20,14 +22,16 @@ openai.api_key = f"{secretKey}"
 
 def res(messages) -> str:
   print("Sending API call to OpenAI...")
-  response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages)
+  response = openai.ChatCompletion.create(model="gpt-3.5-turbo",
+                                          messages=messages)
   assistant_response = response["choices"][0]["message"]["content"]
   token_usage = response["usage"]["total_tokens"]
   return assistant_response, token_usage
 
 
 def token_check(messages) -> str:
-  response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages)
+  response = openai.ChatCompletion.create(model="gpt-3.5-turbo",
+                                          messages=messages)
   token_usage = response["usage"]["total_tokens"]
   return token_usage
 
@@ -81,6 +85,21 @@ def login():
         session["ip_address"] = ip_address
         session["uuid"] = uuid
         session["identity_hash"] = identity_hash
+        """db[username] = {
+          "username": username,
+          "ip_address": ip_address,
+          "uuid": uuid,
+          "user_agent": user_agent,
+          "identity_hash": identity_hash,
+          "conversations": {
+            "conversation1": {
+                "prompt": prompt,
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": chosen_prompt
+                    }
+        }]"""
         db[username] = {
           "username": username,
           "ip_address": ip_address,
@@ -92,6 +111,7 @@ def login():
             "content": chosen_prompt
           }]
         }
+
         return redirect("/chat")
     else:
       if session.get("username") and session.get(
@@ -116,7 +136,8 @@ def chat():
     messages.append(observed_dict.value)
   for message in messages:
     if message["role"] != "system":
-      message["content"] = markdown2.markdown(message["content"], extras=["fenced-code-blocks"])
+      message["content"] = markdown2.markdown(message["content"],
+                                              extras=["fenced-code-blocks"])
   return render_template("chat.html",
                          messages=messages,
                          title=session.get("title"),
@@ -158,7 +179,7 @@ def reset_messages():
   if not session.get("username"):
     return redirect("/")
   username = session["username"]
-  text = "Chat Reset"
+  text = "Chat Reset!"
   prompt = session.get("prompt")
   db[username]["messages"] = [{"role": "system", "content": f"{prompt}"}]
   session.pop("prompt", None)
@@ -173,7 +194,7 @@ def summary_of_messages():
   summary_msgs = ""
   for index, message in enumerate(messages):
     if message["role"] == "user":
-      if index > 2:
+      if index > 1:
         break
       summary_msgs += message["content"]
     elif message["role"] == "assistant":
@@ -181,10 +202,13 @@ def summary_of_messages():
         break
       summary_msgs += f"{message['content']}"
   prompt = "The next message should be summerized into five words or less. No explanation or elaboration. Response needs to be five words or less."
-  arr = [
-    {"role": "system", "content": f"{prompt}"},
-    {"role": "user", "content": summary_msgs}
-  ]
+  arr = [{
+    "role": "system",
+    "content": f"{prompt}"
+  }, {
+    "role": "user",
+    "content": summary_msgs
+  }]
   response, tokens = res(arr)
   response = response.split()
   response = "_".join(response)
