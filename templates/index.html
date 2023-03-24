@@ -5,10 +5,6 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script>
-    window.onload = function() {
-      var mess = document.querySelector('.mess');
-      mess.scrollTop = mess.scrollHeight;
-    };
     {% if text %}
     setTimeout(function() {
   const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
@@ -58,20 +54,24 @@ document.getElementById("black-box").style.display = "none";      document.getEl
     }
     .reset-text {
       color: red;
-      text-align: center;
-      font-size: 4em;
+      font-size: 3em;
   }
-  #black-box {
+    #black-box {
       position: fixed;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
       width: 25%; 
-      height: 15%;
+      height: 8%;
       background-color: black;
       z-index: 9999;
-      border: 2px solid white;
       border-radius: 10px;
+      border: 2px solid white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      
     }
   </style>
   <title>ChatGPT Prompt Select</title>
@@ -107,7 +107,7 @@ document.getElementById("black-box").style.display = "none";      document.getEl
 
   {% if text %}
   <div id="black-box">
-    <h1 class="reset-text" id="error">{{ text }}</h1>
+    <span class="reset-text" id="error">{{ text }}</span>
     </div>
     {% endif %}
   

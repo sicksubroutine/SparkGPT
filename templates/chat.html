@@ -4,20 +4,8 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="static/script.js"></script>
   <script>
-    window.onload = function() {
-      let message_box = document.getElementById('message-box');
-      message_box.scrollTop = message_box.scrollHeight;
-      const textarea = document.querySelector(".input-box")
-      const submitButton = document.getElementById("submit-btn");
-
-    textarea.addEventListener("keydown", function(event) {
-    if (event.key === "Enter") {
-      event.preventDefault(); 
-      submitButton.click();
-      }
-    });
-    };
     {% if text %}
     setTimeout(function() {
   const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
