@@ -1,4 +1,4 @@
-from flask import Flask, render_template, session, request, redirect, send_file
+from flask import Flask, render_template, session, request, redirect, send_file, jsonify
 import openai, os, markdown2
 from tools import random_token, get_IP_Address, uuid_func, hash_func, prompt_get, check_old_markdown
 from replit import db
@@ -22,8 +22,7 @@ openai.api_key = f"{secretKey}"
 
 def res(messages) -> str:
   print("Sending API call to OpenAI...")
-  response = openai.ChatCompletion.create(model="gpt-3.5-turbo",
-                                          messages=messages)
+  response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages)
   assistant_response = response["choices"][0]["message"]["content"]
   token_usage = response["usage"]["total_tokens"]
   # TODO: Add a check for errors.
@@ -176,7 +175,7 @@ def respond():
     if db[user]["username"] == session["username"]:
       db[user]["messages"] = messages
       break
-  return redirect("/chat")
+  return jsonify({"response": response})
 
 
 @app.route("/reset")

@@ -42,6 +42,7 @@ body {
   clear: both;
   margin: 5px;
   max-width: 80%;
+  box-sizing: border-box;
 }
 
 .assistant-message:last-child {
@@ -63,6 +64,7 @@ body {
   padding-right: 8px;
   margin: 5px;
   max-width: 80%;
+  box-sizing: border-box;
 }
 
 .reset-text {
@@ -121,6 +123,28 @@ pre.code {
   opacity: 0.5;
 }
 
+.reset-text {
+  color: red;
+  font-size: 2em;
+}
+
+#black-box {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 30%; 
+  height: 8%;
+  background-color: black;
+  z-index: 9999;
+  border-radius: 10px;
+  border: 2px solid white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
 @media screen and (max-width: 768px) {
 .submit-btn {
   right: 3%;
@@ -129,6 +153,12 @@ pre.code {
   
 .input-box {
   width: 83%;
+  }
+.reset-text {
+  font-size: 0.5em;
+  }
+#black-box {
+  width: 30%;
   }
 }
 
@@ -195,4 +225,19 @@ pre.code {
 .export-link:hover {
   color: red;
   opacity: 1;
+}
+
+.prompt {
+    border-radius: 5px;
+    background: linear-gradient(90deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0.75) 50%);
+    color: #fff;
+    box-shadow: 0px 0px 4px 2px rgba(255,0,0,0.2);
+    padding: 10px;
+    font-family: Arial, sans-serif; font-size: 14px;
+}
+
+.user-message.new-message,
+.assistant-message.new-message {
+  padding: 10px;
+  box-sizing: border-box;
 }

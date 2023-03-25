@@ -16,13 +16,15 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
   </script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
   <link rel="stylesheet" href="/static/style.css">
+  <style>
+  </style>
   <title>{{ title }} Chat</title>
 </head>
 <body>
   
   <center>
     <div class="form-wrapper">
-      <form action="/respond" method="post">
+      <form action="/respond" method="post" onsubmit="sendMessage(event)">
         <div class="input-wrapper">
           <a href="/reset" class="reset-btn"><i class="fa fa-undo" aria-hidden="true"></i></a>
           <textarea class ="input-box" name="message" placeholder="Enter a message here..." required></textarea>
