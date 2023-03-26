@@ -1,11 +1,11 @@
 from flask import Flask, render_template, session, request, redirect, send_file, jsonify
-import openai, os, markdown2
+import openai, os, markdown2, time
 from tools import random_token, get_IP_Address, uuid_func, hash_func, prompt_get, check_old_markdown
 from replit import db
 
 ## TODO: Add more prompts.
 ## TODO: Be able to have different saved conversations running concurrently?
-# TODO: List current conversations on homepage.abs
+# TODO: List current conversations on homepage.
 
 TOKEN_LIMIT = 3000
 """
@@ -19,20 +19,6 @@ app.secret_key = os.environ['sessionKey']
 secretKey = os.environ['gpt-API']
 openai.api_key = f"{secretKey}"
 
-
-def res(messages) -> str:
-  print("Sending API call to OpenAI...")
-  response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages)
-  assistant_response = response["choices"][0]["message"]["content"]
-  token_usage = response["usage"]["total_tokens"]
-  # TODO: Add a check for errors.
-  # check if response is HTTP error code
-  #if response["status"] == "error":
-  #  print(f"Error: {response['status']}")
-  #  return "Error"
-  return assistant_response, token_usage
-
-
 def prompt_choose(prompt) -> str:
   return prompt_get(prompt)
 
@@ -42,12 +28,8 @@ def index():
   text = request.args.get("t")
   if session.get("username"):
     username = session["username"]
-    users = db.prefix("user")
-    for user in users:
-      if db[user]["username"] == username:
-        # Get the list of conversations
-        pass
-  return render_template("index.html", text=text, conversations=False)
+    #db[username]["conversations"] = conversations
+  return render_template("index.html", text=text, conversations=[])
 
 
 @app.route('/login', methods=['POST', 'GET'])
@@ -121,6 +103,25 @@ def login():
       if session.get("username") and session.get(
           "username") != None and session.get("identity_hash") != None:
         username = session.get("username")
+
+        # TODO: Make this more general so that it can be used for more than 3 conversations.
+        #if db[username]["conversations"]["conversations2"] != None:
+        #   db[username]["conversations"]["conversations2"] = {
+        #     "prompt": prompt,
+        #     "messages": [{
+        #       "role": "system",
+        #       "content": chosen_prompt
+        #     }]
+        #session["conversation"] = "conversations2"
+        #elif db[username]["conversations"]["conversations3"] != None:
+        #   db[username]["conversations"]["conversations3"] = {
+        #     "prompt": prompt,
+        #     "messages": [{
+        #       "role": "system",
+        #       "content": chosen_prompt
+        #     }]
+        #session["conversation"] = "conversations3"
+
         db[username]["messages"] = [{
           "role": "system",
           "content": chosen_prompt
@@ -134,6 +135,8 @@ def chat():
     return redirect("/")
   text = request.args.get("t")
   username = session["username"]
+  # conversation = session["conversation"]
+  # msg = db[username]["conversations"][conversation]["messages"]
   msg = db[username]["messages"]
   messages = []
   for observed_dict in msg.value:
@@ -155,6 +158,8 @@ def respond():
   username = session["username"]
   msg = db[username]["messages"]
   messages = []
+  # conversation = session["conversation"]
+  # msg = db[username]["conversations"][conversation]["messages"]
   for observed_dict in msg.value:
     messages.append(observed_dict.value)
   if request.method == 'POST':
@@ -173,6 +178,7 @@ def respond():
   users = db.prefix("user")
   for user in users:
     if db[user]["username"] == session["username"]:
+      # db[user]["conversations"][conversation]["messages"] = messages
       db[user]["messages"] = messages
       break
   return jsonify({"response": response})
