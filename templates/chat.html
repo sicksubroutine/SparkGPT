@@ -33,7 +33,7 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
       </form>
     </div>
   </center>
-  <div class="title"><span>{{ title }}</span><a class="export-link" href="/export">&#x2601;</a></div>
+  <div class="title"><span><a href="/">{{ title }}</span></a><a class="export-link" href="/export">&#x2601;</a></div>
   <div class="message-box" id="message-box">
     
   {% for message in messages %}

@@ -13,7 +13,7 @@ window.onload = function() {
 };
 
 function sendMessage(event) {
-  event.preventDefault(); // prevent form submission from reloading the page
+  event.preventDefault();
   const message = document.querySelector('textarea[name="message"]').value;
   const messageBox = document.getElementById('message-box');
   const userMessage = document.createElement('div');

@@ -1,5 +1,7 @@
-import string, random, uuid, hashlib, os
+import string, random, uuid, hashlib, os, openai, time
 
+secretKey = os.environ['gpt-API']
+openai.api_key = f"{secretKey}"
 
 def random_token() -> str:
   ran_token = ''.join(
@@ -67,6 +69,46 @@ def prompt_get(prompt) -> str:
 
 def check_old_markdown():
   path = "static/markdown/"
+  if not os.path.exists(path):
+    os.makedirs(path)
   for filename in os.listdir(path):
     if filename.endswith(".md"):
       os.remove(path + filename)
+
+def res(messages) -> str:
+  retry = True
+  retry_count = 0
+  max_retries = 5
+  backoff_time = 1  # seconds
+  assistant_response = ""
+  token_usage = 0
+  while retry:
+    try:
+      response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages)
+      assistant_response = response["choices"][0]["message"]["content"]
+      token_usage = response["usage"]["total_tokens"]
+      retry = False
+      break
+    except openai.error.APIError as e:
+      print(f"OpenAI API returned an API Error: {e}")
+      retry_count += 1
+      if retry_count >= max_retries:
+          retry = False
+          break
+      time.sleep(backoff_time * 2 ** retry_count)
+    except openai.error.APIConnectionError as e:
+      print(f"Failed to connect to OpenAI API: {e}")
+      retry_count += 1
+      if retry_count >= max_retries:
+          retry = False
+          break
+      time.sleep(backoff_time * 2 ** retry_count)
+    except openai.error.RateLimitError as e:
+      print(f"OpenAI API request exceeded rate limit: {e}")
+      retry_count += 1
+      if retry_count >= max_retries:
+          retry = False
+          break
+      time.sleep(backoff_time * 2 ** retry_count)
+  return assistant_response, token_usage
+  

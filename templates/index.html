@@ -4,14 +4,14 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
   <script>
-    {% if text %}
-    setTimeout(function() {
-  const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+  {% if text %}
+  setTimeout(function() {
+const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
 window.history.replaceState({ path: newUrl }, '', newUrl);
-
-document.getElementById("black-box").style.display = "none";      document.getElementById("error").style.display = "none";
-}, 3000);
+document.getElementById("black-box").style.display = "none";      
+document.getElementById("error").style.display = "none";}, 3000);
     {% endif %}
   </script>
   <style>
@@ -90,6 +90,9 @@ document.getElementById("black-box").style.display = "none";      document.getEl
       height: 5%;
       }
     }
+    .mess {
+      text-align: center;
+    }
   </style>
   <title>ChatGPT Prompt Select</title>
 </head>
@@ -127,9 +130,16 @@ document.getElementById("black-box").style.display = "none";      document.getEl
     <span class="reset-text" id="error">{{ text }}</span>
     </div>
     {% endif %}
-  
+  <br>
   <div class="mess">
-    
+    {% if conversations %}
+      {% for conv_name, conv in conversations.items() %}
+          <span><a href="/login?conversation={{ conv_name }}" class="submit-link">{{ conv['prompt'] }}</span></a> <a href="/delete_convo?conversation={{conv_name}}"><i class="fa fa-trash"></i></a>
+          <div class="summary">
+              {{ conv['summary'] }}
+          </div>
+      {% endfor %}
+    {% endif %}
   </div>
 </body>
 </html>

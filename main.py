@@ -1,23 +1,23 @@
 from flask import Flask, render_template, session, request, redirect, send_file, jsonify
-import openai, os, markdown2, time
-from tools import random_token, get_IP_Address, uuid_func, hash_func, prompt_get, check_old_markdown
+import os, markdown2
+from tools import random_token, get_IP_Address, uuid_func, hash_func, prompt_get, check_old_markdown, res
 from replit import db
 
 ## TODO: Add more prompts.
-## TODO: Be able to have different saved conversations running concurrently?
-# TODO: List current conversations on homepage.
+## TODO: Have ChatGPT summerize the conversation and store that then use that for the markdown naming feature later.
+## Grab a longer sentence and have that be the summary in the database, but then have chatgpt summerize that even more?
+
 
 TOKEN_LIMIT = 3000
-"""
+
 users = db.prefix("user")
 print(f"Number of Users: {len(users)}")
-"""
+for user in users:
+  print(db[user]["conversations"])
 
 app = Flask(__name__, static_url_path='/static')
-
 app.secret_key = os.environ['sessionKey']
-secretKey = os.environ['gpt-API']
-openai.api_key = f"{secretKey}"
+
 
 def prompt_choose(prompt) -> str:
   return prompt_get(prompt)
@@ -26,10 +26,11 @@ def prompt_choose(prompt) -> str:
 @app.route("/", methods=["GET"])
 def index():
   text = request.args.get("t")
-  if session.get("username"):
+  conv = []
+  if session.get("username") and session.get("identity_hash"):
     username = session["username"]
-    #db[username]["conversations"] = conversations
-  return render_template("index.html", text=text, conversations=[])
+    conv = db[username]["conversations"]
+  return render_template("index.html", text=text, conversations=conv)
 
 
 @app.route('/login', methods=['POST', 'GET'])
@@ -52,6 +53,14 @@ def login():
       title = "Custom Prompt"
       session["title"] = title
       session["prompt"] = chosen_prompt
+  elif 'conversation' in request.args:
+      conversation = request.args.get('conversation')
+      session["conversation"] = conversation
+      prompt = db[username]["conversations"][conversation]["prompt"]
+      prompt_dict = prompt_choose(prompt)
+      title = prompt_dict["title"]
+      session["title"] = title
+      return redirect("/chat")
   if len(request.form) == 0:
     return redirect("/")
   else:
@@ -71,22 +80,25 @@ def login():
         session["ip_address"] = ip_address
         session["uuid"] = uuid
         session["identity_hash"] = identity_hash
-        """db[username] = {
+        conversation = "conversation" + random_token()
+        session["conversation"] = conversation
+        db[username] = {
           "username": username,
           "ip_address": ip_address,
           "uuid": uuid,
           "user_agent": user_agent,
           "identity_hash": identity_hash,
           "conversations": {
-            "conversation1": {
-                "prompt": prompt,
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": chosen_prompt
-                    }
-        }]"""
-        db[username] = {
+            conversation: {
+              "prompt": prompt,
+              "messages": [{
+                "role": "system",
+                "content": chosen_prompt
+              }]
+            }
+          }
+        }
+        """db[username] = {
           "username": username,
           "ip_address": ip_address,
           "uuid": uuid,
@@ -96,36 +108,25 @@ def login():
             "role": "system",
             "content": chosen_prompt
           }]
-        }
+        }"""
 
         return redirect("/chat")
     else:
-      if session.get("username") and session.get(
-          "username") != None and session.get("identity_hash") != None:
+      print("Why are you here?")
+      print(session.get("username"))
+      print(session.get("identity_hash"))
+      if session.get("username") and session.get("identity_hash"):
+        print("Lower area in login route")
         username = session.get("username")
-
-        # TODO: Make this more general so that it can be used for more than 3 conversations.
-        #if db[username]["conversations"]["conversations2"] != None:
-        #   db[username]["conversations"]["conversations2"] = {
-        #     "prompt": prompt,
-        #     "messages": [{
-        #       "role": "system",
-        #       "content": chosen_prompt
-        #     }]
-        #session["conversation"] = "conversations2"
-        #elif db[username]["conversations"]["conversations3"] != None:
-        #   db[username]["conversations"]["conversations3"] = {
-        #     "prompt": prompt,
-        #     "messages": [{
-        #       "role": "system",
-        #       "content": chosen_prompt
-        #     }]
-        #session["conversation"] = "conversations3"
-
-        db[username]["messages"] = [{
-          "role": "system",
-          "content": chosen_prompt
-        }]
+        conversation = "conversation" + random_token()
+        session["conversation"] = conversation
+        db[username]["conversations"][conversation] = {
+            "prompt": prompt,
+            "messages": [{
+                "role": "system",
+                "content": chosen_prompt
+            }]
+        }
       return redirect("/chat")
 
 
@@ -135,9 +136,12 @@ def chat():
     return redirect("/")
   text = request.args.get("t")
   username = session["username"]
-  # conversation = session["conversation"]
-  # msg = db[username]["conversations"][conversation]["messages"]
-  msg = db[username]["messages"]
+  conversation = session["conversation"]
+
+  msg = db[username]["conversations"][conversation]["messages"]
+  print(len(msg))
+  if db.get(username, {}).get("conversations", {}).get(conversation, {}).get("summary") is None and len(msg) > 3:
+    db[username]["conversations"][conversation]["summary"] = summary_of_messages()
   messages = []
   for observed_dict in msg.value:
     messages.append(observed_dict.value)
@@ -155,11 +159,10 @@ def chat():
 def respond():
   if not session.get("username"):
     return redirect("/")
-  username = session["username"]
-  msg = db[username]["messages"]
   messages = []
-  # conversation = session["conversation"]
-  # msg = db[username]["conversations"][conversation]["messages"]
+  username = session["username"]
+  conversation = session["conversation"]
+  msg = db[username]["conversations"][conversation]["messages"]
   for observed_dict in msg.value:
     messages.append(observed_dict.value)
   if request.method == 'POST':
@@ -178,8 +181,7 @@ def respond():
   users = db.prefix("user")
   for user in users:
     if db[user]["username"] == session["username"]:
-      # db[user]["conversations"][conversation]["messages"] = messages
-      db[user]["messages"] = messages
+      db[user]["conversations"][conversation]["messages"] = messages
       break
   return jsonify({"response": response})
 
@@ -191,16 +193,33 @@ def reset_messages():
   username = session["username"]
   text = "Chat Reset!"
   prompt = session.get("prompt")
-  db[username]["messages"] = [{"role": "system", "content": f"{prompt}"}]
+  conversation = session["conversation"]
+  db[username]["conversations"][conversation]["messages"] = [{
+    "role":
+    "system",
+    "content":
+    f"{prompt}"
+  }]
+  db[username]["conversations"][conversation]["summary"] = ""
   session.pop("prompt", None)
+  session
   return redirect(f"/?t={text}")
 
+@app.route("/delete_convo", methods=["GET"])
+def delete_convo():
+  if not session.get("username"):
+    return redirect("/")
+  username = session["username"]
+  conversation = request.args["conversation"]
+  db[username]["conversations"].pop(conversation)
+  return redirect("/")
 
 def summary_of_messages():
   if not session.get("username"):
     return redirect("/")
   username = session["username"]
-  messages = db[username]["messages"]
+  conversation = session["conversation"]
+  messages = db[username]["conversations"][conversation]["messages"]
   summary_msgs = ""
   for index, message in enumerate(messages):
     if message["role"] == "user":
@@ -231,9 +250,12 @@ def summary_of_messages():
 def export_messages():
   if not session.get("username"):
     return redirect("/")
+  
   check_old_markdown()
   username = session["username"]
-  messages = db[username]["messages"]
+  conversation = session["conversation"]
+  messages = db[username]["conversations"][conversation]["messages"]
+  summary = db[username]["conversations"][conversation]["summary"]
   markdown = ""
   for message in messages:
     if message['role'] == 'system':
@@ -242,9 +264,10 @@ def export_messages():
       markdown += f"**User:** {message['content']}\n\n"
     elif message['role'] == 'assistant':
       markdown += f"**Assistant:** {message['content']}\n\n"
-  filename = f"{summary_of_messages()}.md"
+  filename = f"{summary}.md"
   path = "static/markdown/"
   path_filename = path + filename
+  
   with open(path_filename, "w") as f:
     f.write(markdown)
   return send_file(path_filename, as_attachment=True)
@@ -258,6 +281,7 @@ def logout():
   session.pop("prompt", None)
   session.pop("uuid", None)
   session.pop("identity_hash", None)
+  session.pop("conversation", None)
   return redirect("/")
 
 
