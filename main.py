@@ -4,16 +4,15 @@ from tools import random_token, get_IP_Address, uuid_func, hash_func, prompt_get
 from replit import db
 
 ## TODO: Add more prompts.
-## TODO: Have ChatGPT summerize the conversation and store that then use that for the markdown naming feature later.
-## Grab a longer sentence and have that be the summary in the database, but then have chatgpt summerize that even more?
-
+## TODO: Make the front page look better.
 
 TOKEN_LIMIT = 3000
-
+"""
 users = db.prefix("user")
 print(f"Number of Users: {len(users)}")
 for user in users:
-  print(db[user]["conversations"])
+  pass
+"""
 
 app = Flask(__name__, static_url_path='/static')
 app.secret_key = os.environ['sessionKey']
@@ -54,13 +53,13 @@ def login():
       session["title"] = title
       session["prompt"] = chosen_prompt
   elif 'conversation' in request.args:
-      conversation = request.args.get('conversation')
-      session["conversation"] = conversation
-      prompt = db[username]["conversations"][conversation]["prompt"]
-      prompt_dict = prompt_choose(prompt)
-      title = prompt_dict["title"]
-      session["title"] = title
-      return redirect("/chat")
+    conversation = request.args.get('conversation')
+    session["conversation"] = conversation
+    prompt = db[username]["conversations"][conversation]["prompt"]
+    prompt_dict = prompt_choose(prompt)
+    title = prompt_dict["title"]
+    session["title"] = title
+    return redirect("/chat")
   if len(request.form) == 0:
     return redirect("/")
   else:
@@ -112,20 +111,16 @@ def login():
 
         return redirect("/chat")
     else:
-      print("Why are you here?")
-      print(session.get("username"))
-      print(session.get("identity_hash"))
       if session.get("username") and session.get("identity_hash"):
-        print("Lower area in login route")
         username = session.get("username")
         conversation = "conversation" + random_token()
         session["conversation"] = conversation
         db[username]["conversations"][conversation] = {
-            "prompt": prompt,
-            "messages": [{
-                "role": "system",
-                "content": chosen_prompt
-            }]
+          "prompt": prompt,
+          "messages": [{
+            "role": "system",
+            "content": chosen_prompt
+          }]
         }
       return redirect("/chat")
 
@@ -139,9 +134,9 @@ def chat():
   conversation = session["conversation"]
 
   msg = db[username]["conversations"][conversation]["messages"]
-  print(len(msg))
-  if db.get(username, {}).get("conversations", {}).get(conversation, {}).get("summary") is None and len(msg) > 3:
-    db[username]["conversations"][conversation]["summary"] = summary_of_messages()
+  if db.get(username, {}).get("conversations", {}).get(conversation, {}).get("summary") is None and len(msg) >= 2:
+    long_res, short_res = summary_of_messages()
+    db[username]["conversations"][conversation]["summary"] = long_res
   messages = []
   for observed_dict in msg.value:
     messages.append(observed_dict.value)
@@ -200,10 +195,12 @@ def reset_messages():
     "content":
     f"{prompt}"
   }]
-  db[username]["conversations"][conversation]["summary"] = ""
+  db[username]["conversations"][conversation].pop("summary")
+  print("summary removed")
   session.pop("prompt", None)
   session
   return redirect(f"/?t={text}")
+
 
 @app.route("/delete_convo", methods=["GET"])
 def delete_convo():
@@ -213,6 +210,7 @@ def delete_convo():
   conversation = request.args["conversation"]
   db[username]["conversations"].pop(conversation)
   return redirect("/")
+
 
 def summary_of_messages():
   if not session.get("username"):
@@ -227,7 +225,7 @@ def summary_of_messages():
         break
       summary_msgs += message["content"]
     elif message["role"] == "assistant":
-      if index > 2:
+      if index == 2:
         break
       summary_msgs += f"{message['content']}"
   prompt = "The next message should be summerized into five words or less. No explanation or elaboration. Response needs to be five words or less."
@@ -239,23 +237,24 @@ def summary_of_messages():
     "content": summary_msgs
   }]
   response, tokens = res(arr)
+  longer_response = response
   response = response.split()
   response = "_".join(response)
   response = response.replace(".", "")
   response = response.replace(",", "")
-  return response
+  return longer_response, response
 
 
 @app.route("/export")
 def export_messages():
   if not session.get("username"):
     return redirect("/")
-  
+
   check_old_markdown()
   username = session["username"]
   conversation = session["conversation"]
   messages = db[username]["conversations"][conversation]["messages"]
-  summary = db[username]["conversations"][conversation]["summary"]
+  longer, summary = summary_of_messages()
   markdown = ""
   for message in messages:
     if message['role'] == 'system':
@@ -267,7 +266,7 @@ def export_messages():
   filename = f"{summary}.md"
   path = "static/markdown/"
   path_filename = path + filename
-  
+
   with open(path_filename, "w") as f:
     f.write(markdown)
   return send_file(path_filename, as_attachment=True)
