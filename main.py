@@ -5,6 +5,7 @@ from replit import db
 
 ## TODO: Add more prompts.
 ## TODO: Make the front page look better.
+## TODO: Give ability to delete specific messages.
 
 TOKEN_LIMIT = 3000
 """
@@ -48,6 +49,7 @@ def login():
       session["title"] = title
       session["prompt"] = prompt
     elif 'custom_prompt' in request.form:
+      prompt = "CustomPrompt"
       chosen_prompt = request.form.get('custom_prompt')
       title = "Custom Prompt"
       session["title"] = title
@@ -137,6 +139,7 @@ def chat():
   if db.get(username, {}).get("conversations", {}).get(conversation, {}).get("summary") is None and len(msg) >= 2:
     long_res, short_res = summary_of_messages()
     db[username]["conversations"][conversation]["summary"] = long_res
+    db[username]["conversations"][conversation]["short_summary"] = short_res
   messages = []
   for observed_dict in msg.value:
     messages.append(observed_dict.value)
@@ -196,6 +199,7 @@ def reset_messages():
     f"{prompt}"
   }]
   db[username]["conversations"][conversation].pop("summary")
+  db[username]["conversations"][conversation].pop("short_summary")
   print("summary removed")
   session.pop("prompt", None)
   session
@@ -228,7 +232,7 @@ def summary_of_messages():
       if index == 2:
         break
       summary_msgs += f"{message['content']}"
-  prompt = "The next message should be summerized into five words or less. No explanation or elaboration. Response needs to be five words or less."
+  prompt = "The user's message should be summerized into five words or less. No explanation or elaboration. Response needs to be five words or less, no puncutation."
   arr = [{
     "role": "system",
     "content": f"{prompt}"
@@ -254,7 +258,7 @@ def export_messages():
   username = session["username"]
   conversation = session["conversation"]
   messages = db[username]["conversations"][conversation]["messages"]
-  longer, summary = summary_of_messages()
+  summary = db[username]["conversations"][conversation]["short_summary"]
   markdown = ""
   for message in messages:
     if message['role'] == 'system':
