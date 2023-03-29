@@ -136,7 +136,8 @@ def chat():
   conversation = session["conversation"]
 
   msg = db[username]["conversations"][conversation]["messages"]
-  if db.get(username, {}).get("conversations", {}).get(conversation, {}).get("summary") is None and len(msg) >= 2:
+  if db.get(username, {}).get("conversations", {}).get(
+      conversation, {}).get("summary") is None and len(msg) > 1:
     long_res, short_res = summary_of_messages()
     db[username]["conversations"][conversation]["summary"] = long_res
     db[username]["conversations"][conversation]["short_summary"] = short_res
@@ -229,10 +230,8 @@ def summary_of_messages():
         break
       summary_msgs += message["content"]
     elif message["role"] == "assistant":
-      if index == 2:
-        break
-      summary_msgs += f"{message['content']}"
-  prompt = "The user's message should be summerized into five words or less. No explanation or elaboration. Response needs to be five words or less, no puncutation."
+      pass
+  prompt = "The user's question or request should be summerized into five words or less. No explanation or elaboration. Response needs to be five words or less, no puncutation."
   arr = [{
     "role": "system",
     "content": f"{prompt}"
