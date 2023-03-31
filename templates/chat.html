@@ -17,6 +17,8 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
   <link rel="stylesheet" href="/static/style.css">
   <style>
+  
+
   </style>
   <title>{{ title }} Chat</title>
 </head>
@@ -35,30 +37,45 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
   </center>
   <div class="title"><span><a href="/">{{ title }}</span></a><a class="export-link" href="/export">&#x2601;</a></div>
   <div class="message-box" id="message-box">
-    
   {% for message in messages %}
     {% if message.role != 'system' %}
       {% if message.role == 'assistant' %}
-              {% if '<pre>' in message.content %}
-              <div class="assistant-message">
-                {{ message.content|replace('<pre>', '<pre class="code">')|safe }}</pre>
+        {% if '<pre>' in message.content %}
+          
+            <div class="assistant-message">
+              {{ message.content|replace('<pre>', '<pre class="code">')|safe }}
+              </pre>
               </div>
-              {% else %}
-              <div class="assistant-message">
-                {{ message.content|safe }}
-              </div>
-              {% endif %}
-                  
-            {% elif message.role == 'user' %}
-              <div class="user-message">
+            <div class="message-actions" style="float: {{ 'left' if loop.index % 1 == 0 else 'right' }};">
+    <a href="/delete_msg?msg={{ message.index }}" class="ass-btn"><i class="fas fa-trash"></i></a>
+            </div>
+         
+        {% else %}
+         
+            <div class="assistant-message">
               {{ message.content|safe }}
-              </div>
-            {% endif %}      
+            </div>
+            <div class="message-actions" style="float: {{ 'left' if loop.index % 1 == 0 else 'right' }};">
+    <a href="/delete_msg?msg={{ message.index }}" class="ass-btn"><i class="fas fa-trash"></i></a>
+            </div>
+          
+        {% endif %}
+      {% elif message.role == 'user' %}
+          
+          <div class="user-message">
+            {{ message.content|safe }}
+          </div>
+          <div class="message-actions" style="float: {{ 'right' if loop.index % 2 == 0 else 'left' }};">
+    <a href="/delete_msg?msg={{ message.index }}" class="usr-btn"><i class="fas fa-trash"></i></a>
+          </div>
+      {% endif %}      
     {% endif %}
-{% endfor %}
-    {% if text %}
+  {% endfor %}
+
+  {% if text %}
     <h1 class="reset-text" id="error">{{ text }}</h1>
-    {% endif %}
-  </div>
+  {% endif %}
+</div>
+
 </body>
 </html>

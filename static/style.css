@@ -215,6 +215,7 @@ pre.code {
   margin-top: 10px;
   margin-bottom: 10px;
 }
+
 .export-link {
   float: right;
   color: white;
@@ -222,6 +223,7 @@ pre.code {
   margin-right: 5px;
   opacity: 0.5;
 }
+
 .export-link:hover {
   color: red;
   opacity: 1;
@@ -240,4 +242,27 @@ pre.code {
 .assistant-message.new-message {
   padding: 10px;
   box-sizing: border-box;
+}
+
+.message-actions {
+  padding-top: 2px;
+  position: relative;
+}
+
+.usr-btn {
+  color: white;
+  position: absolute;
+  transform: translateX(30%);
+  
+}
+.usr-btn:hover {
+  color: red;
+}
+.ass-btn {
+  color: white;
+  position: absolute;
+  transform: translateX(-105%);
+}
+.ass-btn:hover {
+  color: red;
 }

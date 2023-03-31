@@ -1,11 +1,12 @@
 from flask import Flask, render_template, session, request, redirect, send_file, jsonify
-import os, markdown2
+import os, markdown2, random
 from tools import random_token, get_IP_Address, uuid_func, hash_func, prompt_get, check_old_markdown, res
 from replit import db
 
 ## TODO: Add more prompts.
 ## TODO: Make the front page look better.
 ## TODO: Give ability to delete specific messages.
+## Added context to above todo, if a message is deleted, all following messages should be deleted as well.
 
 TOKEN_LIMIT = 3000
 """
@@ -148,6 +149,9 @@ def chat():
     if message["role"] != "system":
       message["content"] = markdown2.markdown(message["content"],
                                               extras=["fenced-code-blocks"])
+  
+  for index, message in enumerate(messages):
+    message["index"] = index
   return render_template("chat.html",
                          messages=messages,
                          title=session.get("title"),
@@ -216,6 +220,19 @@ def delete_convo():
   db[username]["conversations"].pop(conversation)
   return redirect("/")
 
+@app.route("/delete_msg", methods=["GET"])
+def delete_msg():
+  if not session.get("username"):
+    return redirect("/")
+  username = session["username"]
+  conversation = session["conversation"]
+  msg_index = int(request.args["msg"])
+  if msg_index >= 0 and msg_index < len(db[username]["conversations"][conversation]["messages"]):
+        del db[username]["conversations"][conversation]["messages"][msg_index]
+        return redirect("/chat")
+  else:
+    return "Invalid message index"
+  return redirect("/chat")
 
 def summary_of_messages():
   if not session.get("username"):
