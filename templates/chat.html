@@ -46,7 +46,7 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
               {{ message.content|replace('<pre>', '<pre class="code">')|safe }}
               </pre>
               </div>
-            <div class="message-actions" style="float: {{ 'left' if loop.index % 1 == 0 else 'right' }};">
+            <div class="message-actions-assistant">
     <a href="/delete_msg?msg={{ message.index }}" class="ass-btn"><i class="fas fa-trash"></i></a>
             </div>
          
@@ -55,7 +55,7 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
             <div class="assistant-message">
               {{ message.content|safe }}
             </div>
-            <div class="message-actions" style="float: {{ 'left' if loop.index % 1 == 0 else 'right' }};">
+            <div class="message-actions-assistant">
     <a href="/delete_msg?msg={{ message.index }}" class="ass-btn"><i class="fas fa-trash"></i></a>
             </div>
           
@@ -65,7 +65,7 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
           <div class="user-message">
             {{ message.content|safe }}
           </div>
-          <div class="message-actions" style="float: {{ 'right' if loop.index % 2 == 0 else 'left' }};">
+          <div class="message-actions-user">
     <a href="/delete_msg?msg={{ message.index }}" class="usr-btn"><i class="fas fa-trash"></i></a>
           </div>
       {% endif %}      

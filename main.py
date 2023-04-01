@@ -5,8 +5,9 @@ from replit import db
 
 ## TODO: Add more prompts.
 ## TODO: Make the front page look better.
-## TODO: Give ability to delete specific messages.
-## Added context to above todo, if a message is deleted, all following messages should be deleted as well.
+## TODO: Consider adding Lightning Network payments.
+## TODO: Consider adding a way to login with the Lightning Network.
+##TODO: Add ability to change AI models.
 
 TOKEN_LIMIT = 3000
 
