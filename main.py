@@ -1,5 +1,5 @@
 from flask import Flask, render_template, session, request, redirect, send_file, jsonify
-import os, markdown2, random
+import os, markdown2
 from tools import random_token, get_IP_Address, uuid_func, hash_func, prompt_get, check_old_markdown, res
 from replit import db
 
@@ -9,12 +9,11 @@ from replit import db
 ## Added context to above todo, if a message is deleted, all following messages should be deleted as well.
 
 TOKEN_LIMIT = 3000
-"""
+
 users = db.prefix("user")
-print(f"Number of Users: {len(users)}")
+"""print(f"Number of Users: {len(users)}")
 for user in users:
-  pass
-"""
+  print(db[user])"""
 
 app = Flask(__name__, static_url_path='/static')
 app.secret_key = os.environ['sessionKey']
@@ -149,7 +148,7 @@ def chat():
     if message["role"] != "system":
       message["content"] = markdown2.markdown(message["content"],
                                               extras=["fenced-code-blocks"])
-  
+
   for index, message in enumerate(messages):
     message["index"] = index
   return render_template("chat.html",
@@ -220,6 +219,7 @@ def delete_convo():
   db[username]["conversations"].pop(conversation)
   return redirect("/")
 
+
 @app.route("/delete_msg", methods=["GET"])
 def delete_msg():
   if not session.get("username"):
@@ -227,12 +227,15 @@ def delete_msg():
   username = session["username"]
   conversation = session["conversation"]
   msg_index = int(request.args["msg"])
-  if msg_index >= 0 and msg_index < len(db[username]["conversations"][conversation]["messages"]):
-        del db[username]["conversations"][conversation]["messages"][msg_index]
-        return redirect("/chat")
-  else:
-    return "Invalid message index"
-  return redirect("/chat")
+  try:
+    for i in range(len(db[username]["conversations"][conversation]["messages"])-1, msg_index-1, -1):
+      print(i)
+      del db[username]["conversations"][conversation]["messages"][i]
+    return redirect("/chat")
+  except Exception as e:
+    print(e)
+    return redirect("/chat")
+
 
 def summary_of_messages():
   if not session.get("username"):
