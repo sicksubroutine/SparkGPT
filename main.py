@@ -1,10 +1,12 @@
-from flask import Flask, render_template, session, request, redirect, send_file, jsonify
+from flask import Flask, render_template, session, request, redirect, send_file, jsonify, send_from_directory, url_for
 import os, markdown2
 from tools import random_token, get_IP_Address, uuid_func, hash_func, prompt_get, check_old_markdown, res
 from replit import db
 
+
 ## TODO: Add more prompts.
 ## TODO: Make the front page look better.
+
 ## TODO: Consider adding Lightning Network payments.
 ## TODO: Consider adding a way to login with the Lightning Network.
 ##TODO: Add ability to change AI models.
@@ -32,7 +34,6 @@ def index():
     username = session["username"]
     conv = db[username]["conversations"]
   return render_template("index.html", text=text, conversations=conv)
-
 
 @app.route('/login', methods=['POST', 'GET'])
 def login():
@@ -93,6 +94,10 @@ def login():
           "conversations": {
             conversation: {
               "prompt": prompt,
+              "conversation_history": [{
+              "role": "system",
+              "content": chosen_prompt
+              }],
               "messages": [{
                 "role": "system",
                 "content": chosen_prompt
@@ -120,6 +125,10 @@ def login():
         session["conversation"] = conversation
         db[username]["conversations"][conversation] = {
           "prompt": prompt,
+          "conversation_history": [{
+            "role": "system",
+            "content": chosen_prompt
+          }],
           "messages": [{
             "role": "system",
             "content": chosen_prompt
@@ -135,8 +144,7 @@ def chat():
   text = request.args.get("t")
   username = session["username"]
   conversation = session["conversation"]
-
-  msg = db[username]["conversations"][conversation]["messages"]
+  msg = db[username]["conversations"][conversation]["conversation_history"]
   if db.get(username, {}).get("conversations", {}).get(
       conversation, {}).get("summary") is None and len(msg) > 1:
     long_res, short_res = summary_of_messages()
@@ -149,7 +157,6 @@ def chat():
     if message["role"] != "system":
       message["content"] = markdown2.markdown(message["content"],
                                               extras=["fenced-code-blocks"])
-
   for index, message in enumerate(messages):
     message["index"] = index
   return render_template("chat.html",
@@ -166,11 +173,21 @@ def respond():
   username = session["username"]
   conversation = session["conversation"]
   msg = db[username]["conversations"][conversation]["messages"]
+  if db[username]["conversations"][conversation]["conversation_history"] is None:
+    conversation_history = []
+  else:
+    conversation_history = db[username]["conversations"][conversation]["conversation_history"]
   for observed_dict in msg.value:
     messages.append(observed_dict.value)
+    if observed_dict in conversation_history:
+      continue
+    else:
+      conversation_history.append(observed_dict)
   if request.method == 'POST':
     message = request.form.get("message")
     messages.append({"role": "user", "content": message})
+    if not message in conversation_history:
+      conversation_history.append({"role": "user", "content": message})
   response, token_usage = res(messages)
   if token_usage > TOKEN_LIMIT:
     oldest_assistant_message = next(
@@ -181,9 +198,14 @@ def respond():
     if oldest_assistant_message:
       messages.remove(oldest_assistant_message)
   messages.append({"role": "assistant", "content": response})
+  if not response in conversation_history:
+      conversation_history.append({"role": "assistant", "content": response})
   users = db.prefix("user")
   for user in users:
     if db[user]["username"] == session["username"]:
+      db[user]["conversations"][conversation]["conversation_history"] = conversation_history
+      print(f"{user}'s conversation history size is now: {len(conversation_history)}")
+      print(f"{user}'s message size is now: {len(messages)}")
       db[user]["conversations"][conversation]["messages"] = messages
       break
   return jsonify({"response": response})
@@ -229,9 +251,10 @@ def delete_msg():
   conversation = session["conversation"]
   msg_index = int(request.args["msg"])
   try:
-    for i in range(len(db[username]["conversations"][conversation]["messages"])-1, msg_index-1, -1):
-      print(i)
-      del db[username]["conversations"][conversation]["messages"][i]
+    """for i in range(len(db[username]["conversations"][conversation]["messages"])-1, msg_index-1, -1):
+      print(i)"""
+    del db[username]["conversations"][conversation]["messages"][msg_index]
+    del db[username]["conversations"][conversation]["conversation_history"][msg_index]
     return redirect("/chat")
   except Exception as e:
     print(e)
@@ -277,7 +300,7 @@ def export_messages():
   check_old_markdown()
   username = session["username"]
   conversation = session["conversation"]
-  messages = db[username]["conversations"][conversation]["messages"]
+  messages = db[username]["conversations"][conversation]["conversation_history"]
   summary = db[username]["conversations"][conversation]["short_summary"]
   markdown = ""
   for message in messages:
