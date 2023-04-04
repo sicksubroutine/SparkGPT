@@ -1,4 +1,4 @@
-from flask import Flask, render_template, session, request, redirect, send_file, jsonify, send_from_directory, url_for
+from flask import Flask, render_template, session, request, redirect, send_file, jsonify
 import os, markdown2
 from tools import random_token, get_IP_Address, uuid_func, hash_func, prompt_get, check_old_markdown, res
 from replit import db
@@ -105,18 +105,6 @@ def login():
             }
           }
         }
-        """db[username] = {
-          "username": username,
-          "ip_address": ip_address,
-          "uuid": uuid,
-          "user_agent": user_agent,
-          "identity_hash": identity_hash,
-          "messages": [{
-            "role": "system",
-            "content": chosen_prompt
-          }]
-        }"""
-
         return redirect("/chat")
     else:
       if session.get("username") and session.get("identity_hash"):
