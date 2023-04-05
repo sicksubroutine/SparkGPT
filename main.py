@@ -1,30 +1,40 @@
 from flask import Flask, render_template, session, request, redirect, send_file, jsonify
-import os, markdown2
+from flask_socketio import SocketIO
+import os, markdown2, requests
 from tools import random_token, get_IP_Address, uuid_func, hash_func, prompt_get, check_old_markdown, res
 from replit import db
 
 
 ## TODO: Add more prompts.
 ## TODO: Make the front page look better.
-
-## TODO: Consider adding Lightning Network payments.
+## ----
+## TODO: Add Lightning Network payments.
+## ---- Create html page for payments
+## ---- Integrate payment system
+## ---- Figure out how to handle tokens/payment ratio
+## ---- List the amount of token usage/credits left idicator on chat.html page
 ## TODO: Consider adding a way to login with the Lightning Network.
 ##TODO: Add ability to change AI models.
 
+
+API_KEY = os.environ['lnbits_api']
+URL = "https://legend.lnbits.com/api/v1/payments/"
+HEADERS = {"X-Api-Key": API_KEY, "Content-Type": "application/json"}
 TOKEN_LIMIT = 3000
 
+"""
 users = db.prefix("user")
-"""print(f"Number of Users: {len(users)}")
+print(f"Number of Users: {len(users)}")
 for user in users:
-  print(db[user])"""
+  print(db[user])
+"""
 
 app = Flask(__name__, static_url_path='/static')
 app.secret_key = os.environ['sessionKey']
-
+socketio = SocketIO(app)
 
 def prompt_choose(prompt) -> str:
   return prompt_get(prompt)
-
 
 @app.route("/", methods=["GET"])
 def index():
@@ -34,6 +44,87 @@ def index():
     username = session["username"]
     conv = db[username]["conversations"]
   return render_template("index.html", text=text, conversations=conv)
+
+@app.route('/get_invoice', methods=['GET'])
+def get_invoice():
+  sats = request.args.get('sats')
+  memo = request.args.get('memo')
+  data = {
+    "out": False,
+    "amount": sats,
+    "memo": memo,
+    "expiry": 1500,
+    "webhook": "https://ChatGPT-Flask-App.thechaz.repl.co/webhook"
+  }
+  res = requests.post(URL, headers=HEADERS, json=data)
+  if res.ok:
+    session.pop("payment_request", None)
+    session.pop("payment_hash", None)
+    invoice = res.json()
+    payment_request = invoice.get("payment_request")
+    payment_hash = invoice.get("payment_hash")
+    new_payment = {
+      "amount": sats,
+      "memo": memo,
+      "payment_request": payment_request,
+      "payment_hash": payment_hash,
+      "invoice_status": "not paid"
+    }
+    payment_dict = {payment_hash: {}}
+    payment_dict[payment_hash].update(new_payment)
+    db["payments"].update(payment_dict)
+    print(payment_dict)
+    session["payment_request"] = payment_request
+    session["payment_hash"] = payment_hash
+    return {
+      "status": "success",
+      "payment_request": payment_request
+    }
+  else:
+    print("Error:", res.status_code, res.reason)
+
+@app.route("/qrcode_gen", methods=['GET'])
+def qrcode_gen():
+  payment_request = request.args.get('payment_request')
+  qr_code = qrcode.make(f"lightning:{payment_request}")
+  random_filename = "qrcode_" + str(random.randint(0, 1000000)) + ".png"
+  path = (f"static/qr/{random_filename}")
+  if not os.path.exists("static/qr/"):
+    os.makedirs("static/qr/")
+  qr_code.save(f"static/qr/{random_filename}")
+  return path
+
+def payment_check(payment_hash):
+  url = f"{URL}{payment_hash}"
+  response = requests.get(url, headers=HEADERS)
+  data = response.json()
+  if response.ok:
+    paid = data.get("paid")
+    return paid
+  else:
+    print("Error:", response.status_code, response.reason)
+
+
+@app.route("/webhook", methods=["POST"])
+def webhook():
+  data = request.json
+  payment_hash = data.get("payment_hash")
+  paid = payment_check(payment_hash)
+  if paid:
+    text = f"{payment_hash} has been paid!"
+    print(text)
+    db["payments"][payment_hash]["invoice_status"] = "paid"
+  return "OK"
+
+@app.route('/payment_updates')
+def payment_updates():
+  payment_hash = session["payment_hash"]
+  invoice_status = db['payments'][payment_hash].get("invoice_status")
+  if invoice_status == 'paid':
+    data = 'data: {"status": "paid"}\n\n'
+  else:
+    data = 'data: {"status": "not paid"}\n\n'
+  return Response(data, content_type='text/event-stream')
 
 @app.route('/login', methods=['POST', 'GET'])
 def login():
@@ -319,4 +410,5 @@ def logout():
   return redirect("/")
 
 
-app.run(host='0.0.0.0', port=81)
+if __name__ == "__main__":
+  socketio.run(app, debug=True, host='0.0.0.0', port=81)
