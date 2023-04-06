@@ -7,7 +7,7 @@ from replit import db
 
 ## TODO: Add more prompts.
 ## TODO: Make the front page look better.
-## ----
+## --------------------------------------
 ## TODO: Add Lightning Network payments.
 ## ---- Create html page for payments
 ## ---- Integrate payment system
@@ -73,7 +73,6 @@ def get_invoice():
     payment_dict = {payment_hash: {}}
     payment_dict[payment_hash].update(new_payment)
     db["payments"].update(payment_dict)
-    print(payment_dict)
     session["payment_request"] = payment_request
     session["payment_hash"] = payment_hash
     return {
