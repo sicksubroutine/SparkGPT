@@ -13,6 +13,7 @@ from replit import db
 ## ---- Integrate payment system
 ## ---- Figure out how to handle tokens/payment ratio
 ## ---- List the amount of token usage/credits left idicator on chat.html page
+## ---- 100 sats per 1000 tokens
 ## TODO: Consider adding a way to login with the Lightning Network.
 ##TODO: Add ability to change AI models.
 
@@ -240,7 +241,7 @@ def chat():
   return render_template("chat.html",
                          messages=messages,
                          title=session.get("title"),
-                         text=text)
+                         text=text, token_left=200)
 
 
 @app.route("/respond", methods=["POST"])
