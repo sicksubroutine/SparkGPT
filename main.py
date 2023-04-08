@@ -13,7 +13,6 @@ from replit import db
 ## ---- Integrate payment system
 ## ---- Figure out how to handle tokens/payment ratio
 ## ---- List the amount of token usage/credits left idicator on chat.html page
-## ---- 100 sats per 1000 tokens
 ## TODO: Consider adding a way to login with the Lightning Network.
 ##TODO: Add ability to change AI models.
 
@@ -22,6 +21,8 @@ API_KEY = os.environ['lnbits_api']
 URL = "https://legend.lnbits.com/api/v1/payments/"
 HEADERS = {"X-Api-Key": API_KEY, "Content-Type": "application/json"}
 TOKEN_LIMIT = 3000
+SATS = 0.00000001
+DOLLAR_PER_1K_TOKENS = 0.025
 
 """
 users = db.prefix("user")
@@ -45,6 +46,13 @@ def index():
     username = session["username"]
     conv = db[username]["conversations"]
   return render_template("index.html", text=text, conversations=conv)
+
+# Function that calculates the cost of tokens in sats.
+def get_bitcoin_cost(tokens):
+  url = "https://api.kraken.com/0/public/Ticker?pair=xbtusd"
+  r = requests.get(url)
+  data = r.json()["result"]["XXBTZUSD"]["c"]
+  return round(((tokens/1000) * DOLLAR_PER_1K_TOKENS / round(float(data[0]))) / SATS)
 
 @app.route('/get_invoice', methods=['GET'])
 def get_invoice():
