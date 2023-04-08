@@ -68,6 +68,9 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
           </div>
           <div class="message-actions-user">
     <a href="/delete_msg?msg={{ message.index }}" class="usr-btn"><i class="fas fa-trash"></i></a>
+            <div class="tokens">
+<span class="token"> Tokens Remaining: {{ token_left }}</span>
+            </div>
           </div>
       {% endif %}      
     {% endif %}

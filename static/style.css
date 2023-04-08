@@ -253,4 +253,15 @@ pre.code {
   .ass-btn:hover {
   color: red;
 }
-  
+
+.tokens {
+  position: absolute;
+  bottom: -620px;
+  right: -250px;
+  padding: 5px;
+  margin: 5px;
+  border-radius: 10px;
+  width: 210px;
+  border: 2px solid darkgrey;
+  color: white;
+}
