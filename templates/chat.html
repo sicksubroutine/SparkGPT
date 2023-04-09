@@ -29,6 +29,12 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
     <div class="form-wrapper">
       <form action="/respond" method="post" onsubmit="sendMessage(event)">
         <div class="input-wrapper">
+          {% if token_left %}
+            <div class="tokens">
+<span class="token"> Tokens Remaining: {{ token_left }}</span>
+            
+            </div>
+{% endif %}
           <a href="/reset" class="reset-btn"><i class="fa fa-undo" aria-hidden="true"></i></a>
           <textarea class ="input-box" name="message" placeholder="Enter a message here..." required></textarea>
         </div>
@@ -68,10 +74,9 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
           </div>
           <div class="message-actions-user">
     <a href="/delete_msg?msg={{ message.index }}" class="usr-btn"><i class="fas fa-trash"></i></a>
-            <div class="tokens">
-<span class="token"> Tokens Remaining: {{ token_left }}</span>
-            </div>
+            
           </div>
+          
       {% endif %}      
     {% endif %}
   {% endfor %}
@@ -79,6 +84,7 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
   {% if text %}
     <h1 class="reset-text" id="error">{{ text }}</h1>
   {% endif %}
+          <div></div>
 </div>
 
 </body>

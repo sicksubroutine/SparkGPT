@@ -3,6 +3,7 @@ import string, random, uuid, hashlib, os, openai, time
 secretKey = os.environ['gpt-API']
 openai.api_key = f"{secretKey}"
 
+
 def random_token() -> str:
   ran_token = ''.join(
     random.choice(string.ascii_uppercase + string.digits) for _ in range(16))
@@ -34,7 +35,7 @@ def prompt_get(prompt) -> str:
     },
     "IFSPrompt": {
       "prompt": os.environ['IFSPrompt'],
-      "title": "Internal Family Systems AI"
+      "title": "IFS AI"
     },
     "KetoPrompt": {
       "prompt": os.environ['KetoPrompt'],
@@ -75,6 +76,7 @@ def check_old_markdown():
     if filename.endswith(".md"):
       os.remove(path + filename)
 
+
 def res(messages) -> str:
   retry = True
   retry_count = 0
@@ -84,31 +86,62 @@ def res(messages) -> str:
   token_usage = 0
   while retry:
     try:
-      response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages)
+      response = openai.ChatCompletion.create(model="gpt-3.5-turbo",
+                                              messages=messages)
       assistant_response = response["choices"][0]["message"]["content"]
       token_usage = response["usage"]["total_tokens"]
+      print(response["usage"])
       retry = False
       break
     except openai.error.APIError as e:
       print(f"OpenAI API returned an API Error: {e}")
       retry_count += 1
       if retry_count >= max_retries:
-          retry = False
-          break
-      time.sleep(backoff_time * 2 ** retry_count)
+        retry = False
+        break
+      time.sleep(backoff_time * 2**retry_count)
     except openai.error.APIConnectionError as e:
       print(f"Failed to connect to OpenAI API: {e}")
       retry_count += 1
       if retry_count >= max_retries:
-          retry = False
-          break
-      time.sleep(backoff_time * 2 ** retry_count)
+        retry = False
+        break
+      time.sleep(backoff_time * 2**retry_count)
     except openai.error.RateLimitError as e:
       print(f"OpenAI API request exceeded rate limit: {e}")
       retry_count += 1
       if retry_count >= max_retries:
-          retry = False
-          break
-      time.sleep(backoff_time * 2 ** retry_count)
+        retry = False
+        break
+      time.sleep(backoff_time * 2**retry_count)
   return assistant_response, token_usage
-  
+
+
+def estimate_tokens(text, method="max"):
+  word_count = len(text.split(" "))
+  char_count = len(text)
+  tokens_count_per_word_est = word_count / 0.6
+  tokens_count_char_est = char_count / 4.0
+  output = 0
+  if method == "average":
+    output = (tokens_count_per_word_est + tokens_count_char_est) / 2
+  elif method == "words":
+    output = tokens_count_per_word_est
+  elif method == "chars":
+    output = tokens_count_char_est
+  elif method == 'max':
+    output = max(tokens_count_per_word_est, tokens_count_char_est)
+  elif method == 'min':
+    output = min(tokens_count_per_word_est, tokens_count_char_est)
+  else:
+    # return invalid method message
+    return "Invalid method. Use 'average', 'words', 'chars', 'max', or 'min'."
+  return int(output) + 5
+
+
+def get_bitcoin_cost(tokens):
+  url = "https://api.kraken.com/0/public/Ticker?pair=xbtusd"
+  r = requests.get(url)
+  data = r.json()["result"]["XXBTZUSD"]["c"]
+  return round(
+    ((tokens / 1000) * DOLLAR_PER_1K_TOKENS / round(float(data[0]))) / SATS)

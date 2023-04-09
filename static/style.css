@@ -6,10 +6,10 @@ body {
 .message-box {
   position: absolute;
   box-shadow: 0px 0px 4px 2px rgba(0, 0, 0, 0.2);
-  width: 93%;
-  height: 83%;
+  width: 94%;
+  height: 79%;
   padding: 0 20px;
-  margin: 0 15px;
+  
   border-radius: 10px;
   border: 2px solid gray;
   overflow: auto;
@@ -18,9 +18,8 @@ body {
 @media only screen and (max-width: 768px) {
   .message-box {
     width: 88%;
-    height: 83%;
-    padding: 0 2%;
-    margin: 0 2%;
+    height: 79%;
+    padding: 0 3%;
   }
 }
 
@@ -40,7 +39,7 @@ body {
 }
 
 .assistant-message:last-child {
-  margin-bottom: 25px;
+  margin-bottom: 50px;
 }
 
 .user-message {
@@ -129,11 +128,29 @@ pre.code {
   justify-content: center;
   align-items: center;
 }
+
+.tokens {
+  position: fixed;
+  bottom: 58px;
+  right:  40%;
+  padding: 5px;
+  margin: 6px;
+  border-radius: 10px;
+  width: 210px;
+  border: 2px solid darkgrey;
+  color: white;
+}
+
   
   @media screen and (max-width: 768px) {
   .submit-btn {
   right: 3%;
   font-size: 1.3em;
+}
+
+.tokens {
+  right: 25%;
+  margin:5px;
 }
   
   .input-box {
@@ -254,14 +271,3 @@ pre.code {
   color: red;
 }
 
-.tokens {
-  position: absolute;
-  bottom: -620px;
-  right: -250px;
-  padding: 5px;
-  margin: 5px;
-  border-radius: 10px;
-  width: 210px;
-  border: 2px solid darkgrey;
-  color: white;
-}

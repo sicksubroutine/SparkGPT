@@ -1,7 +1,7 @@
 from flask import Flask, render_template, session, request, redirect, send_file, jsonify
 from flask_socketio import SocketIO
 import os, markdown2, requests
-from tools import random_token, get_IP_Address, uuid_func, hash_func, prompt_get, check_old_markdown, res
+from tools import random_token, get_IP_Address, uuid_func, hash_func, prompt_get, check_old_markdown, res, get_bitcoin_cost, estimate_tokens
 from replit import db
 
 
@@ -47,12 +47,6 @@ def index():
     conv = db[username]["conversations"]
   return render_template("index.html", text=text, conversations=conv)
 
-# Function that calculates the cost of tokens in sats.
-def get_bitcoin_cost(tokens):
-  url = "https://api.kraken.com/0/public/Ticker?pair=xbtusd"
-  r = requests.get(url)
-  data = r.json()["result"]["XXBTZUSD"]["c"]
-  return round(((tokens/1000) * DOLLAR_PER_1K_TOKENS / round(float(data[0]))) / SATS)
 
 @app.route('/get_invoice', methods=['GET'])
 def get_invoice():
@@ -249,7 +243,7 @@ def chat():
   return render_template("chat.html",
                          messages=messages,
                          title=session.get("title"),
-                         text=text, token_left=200)
+                         text=text, token_left=None)
 
 
 @app.route("/respond", methods=["POST"])
@@ -272,6 +266,7 @@ def respond():
       conversation_history.append(observed_dict)
   if request.method == 'POST':
     message = request.form.get("message")
+    print(f"Token Estimation: {estimate_tokens(message)}")
     messages.append({"role": "user", "content": message})
     if not message in conversation_history:
       conversation_history.append({"role": "user", "content": message})
@@ -291,8 +286,6 @@ def respond():
   for user in users:
     if db[user]["username"] == session["username"]:
       db[user]["conversations"][conversation]["conversation_history"] = conversation_history
-      print(f"{user}'s conversation history size is now: {len(conversation_history)}")
-      print(f"{user}'s message size is now: {len(messages)}")
       db[user]["conversations"][conversation]["messages"] = messages
       break
   return jsonify({"response": response})
