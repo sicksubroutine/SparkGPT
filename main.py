@@ -128,6 +128,12 @@ def payment_updates():
     data = 'data: {"status": "not paid"}\n\n'
   return Response(data, content_type='text/event-stream')
 
+#TODO: Need to finish.
+def add_tokens_to_balance(username, tokens):
+  balance = db[username]["balance"]
+  balance += tokens
+  db[username]["balance"] = balance
+
 @app.route('/login', methods=['POST', 'GET'])
 def login():
   ip_address = get_IP_Address(request)
