@@ -86,6 +86,8 @@ def res(messages) -> str:
   token_usage = 0
   while retry:
     try:
+      print("Attempting to send message to assistant...")
+      print(messages)
       response = openai.ChatCompletion.create(model="gpt-3.5-turbo",
                                               messages=messages)
       assistant_response = response["choices"][0]["message"]["content"]

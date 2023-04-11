@@ -4,18 +4,18 @@ import os, markdown2, requests
 from tools import random_token, get_IP_Address, uuid_func, hash_func, prompt_get, check_old_markdown, res, get_bitcoin_cost, estimate_tokens
 from replit import db
 
-
 ## TODO: Add more prompts.
 ## TODO: Make the front page look better.
 ## --------------------------------------
 ## TODO: Add Lightning Network payments.
-## ---- Create html page for payments
 ## ---- Integrate payment system
 ## ---- Figure out how to handle tokens/payment ratio
 ## ---- List the amount of token usage/credits left idicator on chat.html page
 ## TODO: Consider adding a way to login with the Lightning Network.
 ##TODO: Add ability to change AI models.
-
+##TODO: Fix delete chat history and delete message function.
+##TODO: Fix the delete message function by adding an offset if any messages are deleted for going over the token limit.
+##TODO: Delete message history function is causing an extra request to the chatgpt API.
 
 API_KEY = os.environ['lnbits_api']
 URL = "https://legend.lnbits.com/api/v1/payments/"
@@ -23,7 +23,6 @@ HEADERS = {"X-Api-Key": API_KEY, "Content-Type": "application/json"}
 TOKEN_LIMIT = 3000
 SATS = 0.00000001
 DOLLAR_PER_1K_TOKENS = 0.025
-
 """
 users = db.prefix("user")
 print(f"Number of Users: {len(users)}")
@@ -35,8 +34,10 @@ app = Flask(__name__, static_url_path='/static')
 app.secret_key = os.environ['sessionKey']
 socketio = SocketIO(app)
 
+
 def prompt_choose(prompt) -> str:
   return prompt_get(prompt)
+
 
 @app.route("/", methods=["GET"])
 def index():
@@ -78,12 +79,10 @@ def get_invoice():
     db["payments"].update(payment_dict)
     session["payment_request"] = payment_request
     session["payment_hash"] = payment_hash
-    return {
-      "status": "success",
-      "payment_request": payment_request
-    }
+    return {"status": "success", "payment_request": payment_request}
   else:
     print("Error:", res.status_code, res.reason)
+
 
 @app.route("/qrcode_gen", methods=['GET'])
 def qrcode_gen():
@@ -95,6 +94,7 @@ def qrcode_gen():
     os.makedirs("static/qr/")
   qr_code.save(f"static/qr/{random_filename}")
   return path
+
 
 def payment_check(payment_hash):
   url = f"{URL}{payment_hash}"
@@ -118,6 +118,7 @@ def webhook():
     db["payments"][payment_hash]["invoice_status"] = "paid"
   return "OK"
 
+
 @app.route('/payment_updates')
 def payment_updates():
   payment_hash = session["payment_hash"]
@@ -128,11 +129,13 @@ def payment_updates():
     data = 'data: {"status": "not paid"}\n\n'
   return Response(data, content_type='text/event-stream')
 
+
 #TODO: Need to finish.
 def add_tokens_to_balance(username, tokens):
   balance = db[username]["balance"]
   balance += tokens
   db[username]["balance"] = balance
+
 
 @app.route('/login', methods=['POST', 'GET'])
 def login():
@@ -192,10 +195,11 @@ def login():
           "identity_hash": identity_hash,
           "conversations": {
             conversation: {
-              "prompt": prompt,
+              "prompt":
+              prompt,
               "conversation_history": [{
-              "role": "system",
-              "content": chosen_prompt
+                "role": "system",
+                "content": chosen_prompt
               }],
               "messages": [{
                 "role": "system",
@@ -249,7 +253,8 @@ def chat():
   return render_template("chat.html",
                          messages=messages,
                          title=session.get("title"),
-                         text=text, token_left=None)
+                         text=text,
+                         token_left=None)
 
 
 @app.route("/respond", methods=["POST"])
@@ -260,10 +265,12 @@ def respond():
   username = session["username"]
   conversation = session["conversation"]
   msg = db[username]["conversations"][conversation]["messages"]
-  if db[username]["conversations"][conversation]["conversation_history"] is None:
+  if db[username]["conversations"][conversation][
+      "conversation_history"] is None:
     conversation_history = []
   else:
-    conversation_history = db[username]["conversations"][conversation]["conversation_history"]
+    conversation_history = db[username]["conversations"][conversation][
+      "conversation_history"]
   for observed_dict in msg.value:
     messages.append(observed_dict.value)
     if observed_dict in conversation_history:
@@ -287,11 +294,12 @@ def respond():
       messages.remove(oldest_assistant_message)
   messages.append({"role": "assistant", "content": response})
   if not response in conversation_history:
-      conversation_history.append({"role": "assistant", "content": response})
+    conversation_history.append({"role": "assistant", "content": response})
   users = db.prefix("user")
   for user in users:
     if db[user]["username"] == session["username"]:
-      db[user]["conversations"][conversation]["conversation_history"] = conversation_history
+      db[user]["conversations"][conversation][
+        "conversation_history"] = conversation_history
       db[user]["conversations"][conversation]["messages"] = messages
       break
   return jsonify({"response": response})
@@ -325,7 +333,15 @@ def delete_convo():
     return redirect("/")
   username = session["username"]
   conversation = request.args["conversation"]
-  db[username]["conversations"].pop(conversation)
+  users = db.prefix("user")
+  for user in users:
+    if db[user]["username"] == username:
+      del db[username]["conversations"][conversation]
+      session.pop("conversation", None)
+      # try to read the conversation history
+      if db[username]["conversations"][conversation]["conversation_history"]:
+        print(f"Conversation history read for {username}")
+      break
   return redirect("/")
 
 
@@ -336,11 +352,17 @@ def delete_msg():
   username = session["username"]
   conversation = session["conversation"]
   msg_index = int(request.args["msg"])
+  length_msg = len(db[username]["conversations"][conversation]["messages"])
+  length_con_hist = len(
+    db[username]["conversations"][conversation]["conversation_history"])
+  print(f"length: {length_msg}")
+  print(f"length_con_hist: {length_con_hist}")
   try:
     """for i in range(len(db[username]["conversations"][conversation]["messages"])-1, msg_index-1, -1):
       print(i)"""
+    del db[username]["conversations"][conversation]["conversation_history"][
+      msg_index]
     del db[username]["conversations"][conversation]["messages"][msg_index]
-    del db[username]["conversations"][conversation]["conversation_history"][msg_index]
     return redirect("/chat")
   except Exception as e:
     print(e)
@@ -386,7 +408,8 @@ def export_messages():
   check_old_markdown()
   username = session["username"]
   conversation = session["conversation"]
-  messages = db[username]["conversations"][conversation]["conversation_history"]
+  messages = db[username]["conversations"][conversation][
+    "conversation_history"]
   summary = db[username]["conversations"][conversation]["short_summary"]
   markdown = ""
   for message in messages:
