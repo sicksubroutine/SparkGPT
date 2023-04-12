@@ -1,6 +1,6 @@
-from flask import Flask, render_template, session, request, redirect, send_file, jsonify
+from flask import Flask, render_template, session, request, redirect, send_file, jsonify, Response
 from flask_socketio import SocketIO
-import os, markdown2, requests
+import os, markdown2, requests, qrcode, random
 from tools import random_token, get_IP_Address, uuid_func, hash_func, prompt_get, check_old_markdown, res, get_bitcoin_cost, estimate_tokens
 from replit import db
 
@@ -13,21 +13,17 @@ from replit import db
 ## ---- List the amount of token usage/credits left idicator on chat.html page
 ## TODO: Consider adding a way to login with the Lightning Network.
 ##TODO: Add ability to change AI models.
-##TODO: Fix delete chat history and delete message function.
-##TODO: Fix the delete message function by adding an offset if any messages are deleted for going over the token limit.
-##TODO: Delete message history function is causing an extra request to the chatgpt API.
 
 API_KEY = os.environ['lnbits_api']
 URL = "https://legend.lnbits.com/api/v1/payments/"
 HEADERS = {"X-Api-Key": API_KEY, "Content-Type": "application/json"}
-TOKEN_LIMIT = 3000
+TOKEN_LIMIT = 100
 SATS = 0.00000001
 DOLLAR_PER_1K_TOKENS = 0.025
-"""
-users = db.prefix("user")
+
+"""users = db.prefix("user")
 print(f"Number of Users: {len(users)}")
 for user in users:
-  print(db[user])
 """
 
 app = Flask(__name__, static_url_path='/static')
@@ -204,7 +200,8 @@ def login():
               "messages": [{
                 "role": "system",
                 "content": chosen_prompt
-              }]
+              }],
+              "offset": 0
             }
           }
         }
@@ -214,6 +211,7 @@ def login():
         username = session.get("username")
         conversation = "conversation" + random_token()
         session["conversation"] = conversation
+        session["offset"] = db[username]["conversations"][conversation]["offset"]
         db[username]["conversations"][conversation] = {
           "prompt": prompt,
           "conversation_history": [{
@@ -223,7 +221,8 @@ def login():
           "messages": [{
             "role": "system",
             "content": chosen_prompt
-          }]
+          }],
+          "offset": session["offset"]
         }
       return redirect("/chat")
 
@@ -284,12 +283,14 @@ def respond():
     if not message in conversation_history:
       conversation_history.append({"role": "user", "content": message})
   response, token_usage = res(messages)
+  print(session["offset"])
   if token_usage > TOKEN_LIMIT:
     oldest_assistant_message = next(
       (msg for msg in messages if msg["role"] == "assistant"), None)
-    print(
-      f"Token limit reached. Removing oldest assistant message: {oldest_assistant_message}"
-    )
+    print("Token limit reached. Removing oldest assistant message!")
+    db[username]["conversations"][conversation]["offset"] += 1
+    session["offset"] = db[username]["conversations"][conversation]["offset"]
+    print(db[username]["conversations"][conversation]["offset"])
     if oldest_assistant_message:
       messages.remove(oldest_assistant_message)
   messages.append({"role": "assistant", "content": response})
@@ -319,6 +320,13 @@ def reset_messages():
     "content":
     f"{prompt}"
   }]
+  db[username]["conversations"][conversation]["offset"] = 0
+  db[username]["conversations"][conversation]["conversation_history"] = [{
+    "role":
+    "system",
+    "content":
+    f"{prompt}"
+  }]
   db[username]["conversations"][conversation].pop("summary")
   db[username]["conversations"][conversation].pop("short_summary")
   print("summary removed")
@@ -338,9 +346,6 @@ def delete_convo():
     if db[user]["username"] == username:
       del db[username]["conversations"][conversation]
       session.pop("conversation", None)
-      # try to read the conversation history
-      if db[username]["conversations"][conversation]["conversation_history"]:
-        print(f"Conversation history read for {username}")
       break
   return redirect("/")
 
@@ -355,14 +360,14 @@ def delete_msg():
   length_msg = len(db[username]["conversations"][conversation]["messages"])
   length_con_hist = len(
     db[username]["conversations"][conversation]["conversation_history"])
+  offset = db[username]["conversations"][conversation]["offset"]
   print(f"length: {length_msg}")
   print(f"length_con_hist: {length_con_hist}")
   try:
-    """for i in range(len(db[username]["conversations"][conversation]["messages"])-1, msg_index-1, -1):
-      print(i)"""
     del db[username]["conversations"][conversation]["conversation_history"][
       msg_index]
-    del db[username]["conversations"][conversation]["messages"][msg_index]
+    del db[username]["conversations"][conversation]["messages"][msg_index-offset]
+    db[username]["conversations"][conversation]["offset"] -=1
     return redirect("/chat")
   except Exception as e:
     print(e)
