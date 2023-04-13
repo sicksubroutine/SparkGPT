@@ -183,6 +183,7 @@ def login():
         session["identity_hash"] = identity_hash
         conversation = "conversation" + random_token()
         session["conversation"] = conversation
+        session["offset"] = 0
         db[username] = {
           "username": username,
           "ip_address": ip_address,
@@ -211,6 +212,7 @@ def login():
         username = session.get("username")
         conversation = "conversation" + random_token()
         session["conversation"] = conversation
+        session["offset"] = 0
         db[username]["conversations"][conversation] = {
           "prompt": prompt,
           "conversation_history": [{
@@ -283,10 +285,11 @@ def respond():
       conversation_history.append({"role": "user", "content": message})
   response, token_usage = res(messages)
   # print current offset
+  if session.get('offset') is None:
+    session["offset"] = 0
   print(f'Session Offset: {session["offset"]}')
   db[username]["conversations"][conversation]["offset"] = session["offset"]
   offset = db[username]["conversations"][conversation]["offset"]
-  print(f"Current Offset: {offset}")
   if token_usage > TOKEN_LIMIT:
     oldest_assistant_message = next(
       (msg for msg in messages if msg["role"] == "assistant"), None)
@@ -366,8 +369,8 @@ def delete_msg():
   length_msg = len(db[username]["conversations"][conversation]["messages"])
   length_con_hist = len(
     db[username]["conversations"][conversation]["conversation_history"])
-  offset = session["offset"] + 1
-  print("offset:", offset)
+  offset = session["offset"] + 2
+  print("offset plus one:", offset)
   print(f"Number of Messages: {length_msg}")
   print(f"Num of Msgs in Con Hist: {length_con_hist}")
   try:
@@ -375,6 +378,7 @@ def delete_msg():
       msg_index]
     del db[username]["conversations"][conversation]["messages"][msg_index-offset]
     session["offset"] -=1
+    print(f"Offset: {session['offset']}")
     return redirect("/chat")
   except Exception as e:
     print(traceback.format_exc())
@@ -450,7 +454,7 @@ def logout():
   session.pop("uuid", None)
   session.pop("identity_hash", None)
   session.pop("conversation", None)
-  session.pop("offset", 0)
+  session.pop("offset", None)
   return redirect("/")
 
 
