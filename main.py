@@ -1,6 +1,6 @@
 from flask import Flask, render_template, session, request, redirect, send_file, jsonify, Response
 from flask_socketio import SocketIO
-import os, markdown2, requests, qrcode, random
+import os, markdown2, requests, qrcode, random, traceback
 from tools import random_token, get_IP_Address, uuid_func, hash_func, prompt_get, check_old_markdown, res, get_bitcoin_cost, estimate_tokens
 from replit import db
 
@@ -211,7 +211,6 @@ def login():
         username = session.get("username")
         conversation = "conversation" + random_token()
         session["conversation"] = conversation
-        session["offset"] = db[username]["conversations"][conversation]["offset"]
         db[username]["conversations"][conversation] = {
           "prompt": prompt,
           "conversation_history": [{
@@ -222,7 +221,7 @@ def login():
             "role": "system",
             "content": chosen_prompt
           }],
-          "offset": session["offset"]
+          "offset": 0
         }
       return redirect("/chat")
 
@@ -283,14 +282,20 @@ def respond():
     if not message in conversation_history:
       conversation_history.append({"role": "user", "content": message})
   response, token_usage = res(messages)
-  print(session["offset"])
+  # print current offset
+  print(f'Session Offset: {session["offset"]}')
+  db[username]["conversations"][conversation]["offset"] = session["offset"]
+  offset = db[username]["conversations"][conversation]["offset"]
+  print(f"Current Offset: {offset}")
   if token_usage > TOKEN_LIMIT:
     oldest_assistant_message = next(
       (msg for msg in messages if msg["role"] == "assistant"), None)
     print("Token limit reached. Removing oldest assistant message!")
-    db[username]["conversations"][conversation]["offset"] += 1
-    session["offset"] = db[username]["conversations"][conversation]["offset"]
-    print(db[username]["conversations"][conversation]["offset"])
+    
+    offset += 1
+    session["offset"] = offset
+    db[username]["conversations"][conversation]["offset"] = offset
+    print(f"New Offset: {db[username]['conversations'][conversation]['offset']}")
     if oldest_assistant_message:
       messages.remove(oldest_assistant_message)
   messages.append({"role": "assistant", "content": response})
@@ -321,6 +326,7 @@ def reset_messages():
     f"{prompt}"
   }]
   db[username]["conversations"][conversation]["offset"] = 0
+  session["offset"] = 0
   db[username]["conversations"][conversation]["conversation_history"] = [{
     "role":
     "system",
@@ -360,16 +366,18 @@ def delete_msg():
   length_msg = len(db[username]["conversations"][conversation]["messages"])
   length_con_hist = len(
     db[username]["conversations"][conversation]["conversation_history"])
-  offset = db[username]["conversations"][conversation]["offset"]
-  print(f"length: {length_msg}")
-  print(f"length_con_hist: {length_con_hist}")
+  offset = session["offset"] + 1
+  print("offset:", offset)
+  print(f"Number of Messages: {length_msg}")
+  print(f"Num of Msgs in Con Hist: {length_con_hist}")
   try:
     del db[username]["conversations"][conversation]["conversation_history"][
       msg_index]
     del db[username]["conversations"][conversation]["messages"][msg_index-offset]
-    db[username]["conversations"][conversation]["offset"] -=1
+    session["offset"] -=1
     return redirect("/chat")
   except Exception as e:
+    print(traceback.format_exc())
     print(e)
     return redirect("/chat")
 
@@ -442,6 +450,7 @@ def logout():
   session.pop("uuid", None)
   session.pop("identity_hash", None)
   session.pop("conversation", None)
+  session.pop("offset", 0)
   return redirect("/")
 
 
