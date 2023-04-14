@@ -1,4 +1,4 @@
-import string, random, uuid, hashlib, os, openai, time
+import string, random, uuid, hashlib, os, openai, time, requests
 
 secretKey = os.environ['gpt-API']
 openai.api_key = f"{secretKey}"
@@ -141,6 +141,8 @@ def estimate_tokens(text, method="max"):
 
 
 def get_bitcoin_cost(tokens):
+  SATS = 0.00000001
+  DOLLAR_PER_1K_TOKENS = 0.025
   url = "https://api.kraken.com/0/public/Ticker?pair=xbtusd"
   r = requests.get(url)
   data = r.json()["result"]["XXBTZUSD"]["c"]

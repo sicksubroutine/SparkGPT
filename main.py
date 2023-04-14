@@ -17,9 +17,7 @@ from replit import db
 API_KEY = os.environ['lnbits_api']
 URL = "https://legend.lnbits.com/api/v1/payments/"
 HEADERS = {"X-Api-Key": API_KEY, "Content-Type": "application/json"}
-TOKEN_LIMIT = 100
-SATS = 0.00000001
-DOLLAR_PER_1K_TOKENS = 0.025
+TOKEN_LIMIT = 3000
 
 """users = db.prefix("user")
 print(f"Number of Users: {len(users)}")
@@ -370,14 +368,19 @@ def delete_msg():
   length_con_hist = len(
     db[username]["conversations"][conversation]["conversation_history"])
   offset = session["offset"] + 2
-  print("offset plus one:", offset)
+  print("offset plus two:", offset)
   print(f"Number of Messages: {length_msg}")
   print(f"Num of Msgs in Con Hist: {length_con_hist}")
+  difference = length_msg - length_con_hist
   try:
     del db[username]["conversations"][conversation]["conversation_history"][
       msg_index]
-    del db[username]["conversations"][conversation]["messages"][msg_index-offset]
-    session["offset"] -=1
+    del db[username]["conversations"][conversation]["messages"][msg_index-difference]
+    print(len(db[username]["conversations"][conversation]["messages"]))
+    if session["offset"] > 0:
+      session["offset"] -=1
+    elif session["offset"] <= 0:
+      session["offset"] = 0
     print(f"Offset: {session['offset']}")
     return redirect("/chat")
   except Exception as e:
