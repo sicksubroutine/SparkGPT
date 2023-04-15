@@ -22,7 +22,7 @@ TOKEN_LIMIT = 3000
 """users = db.prefix("user")
 print(f"Number of Users: {len(users)}")
 for user in users:
-"""
+  print(db[user]["conversations"])"""
 
 app = Flask(__name__, static_url_path='/static')
 app.secret_key = os.environ['sessionKey']
@@ -156,9 +156,13 @@ def login():
     conversation = request.args.get('conversation')
     session["conversation"] = conversation
     prompt = db[username]["conversations"][conversation]["prompt"]
-    prompt_dict = prompt_choose(prompt)
-    title = prompt_dict["title"]
-    session["title"] = title
+    if prompt != "CustomPrompt":
+      prompt_dict = prompt_choose(prompt)
+      title = prompt_dict["title"]
+      session["title"] = title
+    else:
+      title = "Custom Prompt AI"
+      session["title"] = title
     return redirect("/chat")
   if len(request.form) == 0:
     return redirect("/")
