@@ -17,7 +17,7 @@ from replit import db
 API_KEY = os.environ['lnbits_api']
 URL = "https://legend.lnbits.com/api/v1/payments/"
 HEADERS = {"X-Api-Key": API_KEY, "Content-Type": "application/json"}
-TOKEN_LIMIT = 3000
+TOKEN_LIMIT = 100
 
 """users = db.prefix("user")
 print(f"Number of Users: {len(users)}")
@@ -27,7 +27,6 @@ for user in users:
 app = Flask(__name__, static_url_path='/static')
 app.secret_key = os.environ['sessionKey']
 socketio = SocketIO(app)
-
 
 def prompt_choose(prompt) -> str:
   return prompt_get(prompt)
@@ -139,6 +138,10 @@ def login():
   username = session.get('username')
   identity_hash = hash_func(ip_address, uuid, user_agent)
   if request.method == 'POST':
+    """
+    if session["sats"] == 0:
+      return render_template('pay.html', username=username, balance=0)
+    """
     if 'prompt' in request.form:
       prompt = request.form.get('prompt')
       prompt_dict = prompt_choose(prompt)
@@ -185,7 +188,6 @@ def login():
         session["identity_hash"] = identity_hash
         conversation = "conversation" + random_token()
         session["conversation"] = conversation
-        session["offset"] = 0
         db[username] = {
           "username": username,
           "ip_address": ip_address,
@@ -203,8 +205,7 @@ def login():
               "messages": [{
                 "role": "system",
                 "content": chosen_prompt
-              }],
-              "offset": 0
+              }]
             }
           }
         }
@@ -214,7 +215,6 @@ def login():
         username = session.get("username")
         conversation = "conversation" + random_token()
         session["conversation"] = conversation
-        session["offset"] = 0
         db[username]["conversations"][conversation] = {
           "prompt": prompt,
           "conversation_history": [{
@@ -224,8 +224,7 @@ def login():
           "messages": [{
             "role": "system",
             "content": chosen_prompt
-          }],
-          "offset": 0
+          }]
         }
       return redirect("/chat")
 
@@ -286,21 +285,10 @@ def respond():
     if not message in conversation_history:
       conversation_history.append({"role": "user", "content": message})
   response, token_usage = res(messages)
-  # print current offset
-  if session.get('offset') is None:
-    session["offset"] = 0
-  print(f'Session Offset: {session["offset"]}')
-  db[username]["conversations"][conversation]["offset"] = session["offset"]
-  offset = db[username]["conversations"][conversation]["offset"]
   if token_usage > TOKEN_LIMIT:
     oldest_assistant_message = next(
       (msg for msg in messages if msg["role"] == "assistant"), None)
     print("Token limit reached. Removing oldest assistant message!")
-    
-    offset += 1
-    session["offset"] = offset
-    db[username]["conversations"][conversation]["offset"] = offset
-    print(f"New Offset: {db[username]['conversations'][conversation]['offset']}")
     if oldest_assistant_message:
       messages.remove(oldest_assistant_message)
   messages.append({"role": "assistant", "content": response})
@@ -330,8 +318,6 @@ def reset_messages():
     "content":
     f"{prompt}"
   }]
-  db[username]["conversations"][conversation]["offset"] = 0
-  session["offset"] = 0
   db[username]["conversations"][conversation]["conversation_history"] = [{
     "role":
     "system",
@@ -371,21 +357,11 @@ def delete_msg():
   length_msg = len(db[username]["conversations"][conversation]["messages"])
   length_con_hist = len(
     db[username]["conversations"][conversation]["conversation_history"])
-  offset = session["offset"] + 2
-  print("offset plus two:", offset)
-  print(f"Number of Messages: {length_msg}")
-  print(f"Num of Msgs in Con Hist: {length_con_hist}")
-  difference = length_msg - length_con_hist
+  difference = length_con_hist - length_msg
   try:
     del db[username]["conversations"][conversation]["conversation_history"][
       msg_index]
     del db[username]["conversations"][conversation]["messages"][msg_index-difference]
-    print(len(db[username]["conversations"][conversation]["messages"]))
-    if session["offset"] > 0:
-      session["offset"] -=1
-    elif session["offset"] <= 0:
-      session["offset"] = 0
-    print(f"Offset: {session['offset']}")
     return redirect("/chat")
   except Exception as e:
     print(traceback.format_exc())
@@ -428,7 +404,7 @@ def summary_of_messages():
 def export_messages():
   if not session.get("username"):
     return redirect("/")
-
+  # Clearing out old markdown files.
   check_old_markdown()
   username = session["username"]
   conversation = session["conversation"]
@@ -461,7 +437,6 @@ def logout():
   session.pop("uuid", None)
   session.pop("identity_hash", None)
   session.pop("conversation", None)
-  session.pop("offset", None)
   return redirect("/")
 
 
