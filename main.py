@@ -194,6 +194,7 @@ def login():
           "uuid": uuid,
           "user_agent": user_agent,
           "identity_hash": identity_hash,
+          #"tokens": 0,
           "conversations": {
             conversation: {
               "prompt":
