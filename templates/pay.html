@@ -4,9 +4,108 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Payment Page</title>
+  <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
+
+  <style>
+    .container {
+      top: 50%;
+      padding: 0;
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      text-align: center;
+    }
+    #checkmark {
+      transition: transform 0.2s ease-in-out;
+    }
+  </style>
+  <title>Pay for ChatGPT with Bitcoin</title>
 </head>
 <body>
-  
+  <center><form id="invoice-form">
+        <label for="sats">Sats:</label>
+        <input type="number" id="sats" name="sats" required>
+        <br>
+        <label for="memo">Memo:</label>
+        <input type="text" id="memo" name="memo" required>
+        <br>
+        <button type="submit" id="generate-button">Generate Invoice</button>
+    </form></center><br><br>
+  <center>
+    <div id="checkmark"></div>
+    <div id="qr-code"></div><br><br>
+  <div id="payment-message"></div></center>
 </body>
+  <script>
+    const invoiceForm = document.querySelector("#invoice-form");
+const generateButton = document.querySelector("#generate-button");
+const qrCodeDiv = document.querySelector("#qr-code");
+const satsInput = document.querySelector("#sats");
+const memoInput = document.querySelector("#memo");
+
+invoiceForm.addEventListener("submit", (event) => {
+    event.preventDefault(); 
+    const sats = satsInput.value;
+    const memo = memoInput.value;
+
+    fetch(`/get_invoice?sats=${sats}&memo=${memo}`)
+        .then(response => {
+            if (response.ok) {
+              satsInput.value = "";
+              memoInput.value = "";
+              return response.json();
+            } else {
+                throw new Error("Failed to generate invoice");
+            }
+        })
+        .then(data => {
+            qrCodeDiv.innerHTML = "";
+            const image = document.createElement("img");
+          console.log(data.payment_request);
+            fetch(`/qrcode_gen?payment_request=${encodeURIComponent(data.payment_request)}`)
+                .then(response => response.text())
+                .then(qrCodeImagePath => {
+                    image.src = qrCodeImagePath;
+                    image.width = 500;
+                    qrCodeDiv.appendChild(image);
+                    startPolling();
+                })
+                .catch(error => console.error(error));
+        })
+        .catch(error => console.error(error));
+});
+
+generateButton.addEventListener("click", () => {
+    qrCodeDiv.innerHTML = "";  // clear previous QR codes
+});
+         function handlePaymentSuccess() {
+            $('#payment-popup').html('Payment successful!');
+
+        window.parent.postMessage('payment-successful', '*');
+        window.parent.$('.popup').hide();
+      }
+        function startPolling() {
+            const source = new EventSource("/payment_updates");
+            const target = document.querySelector("#checkmark");
+            source.addEventListener("message", (event) => {
+                const messageDiv = document.querySelector("#payment-message");
+              let data = JSON.parse(event.data);
+              console.log(data);
+                if (data.status === 'not paid') {
+                    messageDiv.textContent = "";
+                } else {
+                  messageDiv.textContent = "Invoice has been paid!";
+                  const icon = document.createElement("i");
+                  icon.classList.add("fas", "fa-check-circle");
+                  icon.style.fontSize = "5em";
+                  icon.style.color = "green";
+                  target.appendChild(icon);
+                  qrCodeDiv.innerHTML = "";
+                  setTimeout(() => handlePaymentSuccess(), 2000);  
+                  source.close();
+                }
+            });
+        }
+    </script>
 </html>

@@ -128,6 +128,7 @@ def add_tokens_to_balance(username, tokens):
   balance = db[username]["balance"]
   balance += tokens
   db[username]["balance"] = balance
+  return balance
 
 
 @app.route('/login', methods=['POST', 'GET'])
