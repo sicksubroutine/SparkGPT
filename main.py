@@ -139,10 +139,6 @@ def login():
   username = session.get('username')
   identity_hash = hash_func(ip_address, uuid, user_agent)
   if request.method == 'POST':
-    """
-    if session["sats"] == 0:
-      return render_template('pay.html', username=username, balance=0)
-    """
     if 'prompt' in request.form:
       prompt = request.form.get('prompt')
       prompt_dict = prompt_choose(prompt)
@@ -189,13 +185,16 @@ def login():
         session["identity_hash"] = identity_hash
         conversation = "conversation" + random_token()
         session["conversation"] = conversation
+        #if session["sats"] == 0:
+        #  return render_template("pay.html", username=username)
+        #session["sats"] = 0
         db[username] = {
           "username": username,
           "ip_address": ip_address,
           "uuid": uuid,
           "user_agent": user_agent,
           "identity_hash": identity_hash,
-          #"tokens": 0,
+          #"sats": 0,
           "conversations": {
             conversation: {
               "prompt":
