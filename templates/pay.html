@@ -104,6 +104,7 @@ generateButton.addEventListener("click", () => {
                   qrCodeDiv.innerHTML = "";
                   setTimeout(() => handlePaymentSuccess(), 2000);  
                   source.close();
+                  window.location.href = "/login";
                 }
             });
         }

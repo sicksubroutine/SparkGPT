@@ -17,12 +17,12 @@ from replit import db
 API_KEY = os.environ['lnbits_api']
 URL = "https://legend.lnbits.com/api/v1/payments/"
 HEADERS = {"X-Api-Key": API_KEY, "Content-Type": "application/json"}
-TOKEN_LIMIT = 100
+TOKEN_LIMIT = 3000
 
 """users = db.prefix("user")
 print(f"Number of Users: {len(users)}")
 for user in users:
-  print(db[user]["conversations"])"""
+  print(db[user]["uuid"])"""
 
 app = Flask(__name__, static_url_path='/static')
 app.secret_key = os.environ['sessionKey']
@@ -41,11 +41,16 @@ def index():
     conv = db[username]["conversations"]
   return render_template("index.html", text=text, conversations=conv)
 
+def clean_up_invoices():
+  path = "static/qr/"
+  for filename in os.listdir(path):
+    if filename.endswith(".png"):
+      os.remove(path + filename)
 
 @app.route('/get_invoice', methods=['GET'])
 def get_invoice():
   sats = request.args.get('sats')
-  memo = request.args.get('memo')
+  memo = f"Payment for {sats} Sats"
   data = {
     "out": False,
     "amount": sats,
@@ -60,7 +65,9 @@ def get_invoice():
     invoice = res.json()
     payment_request = invoice.get("payment_request")
     payment_hash = invoice.get("payment_hash")
+    username = session.get("username")
     new_payment = {
+      "username": username,
       "amount": sats,
       "memo": memo,
       "payment_request": payment_request,
@@ -109,6 +116,9 @@ def webhook():
     text = f"{payment_hash} has been paid!"
     print(text)
     db["payments"][payment_hash]["invoice_status"] = "paid"
+    sats = int(db["payments"][payment_hash]["amount"])
+    username = db["payments"][payment_hash]["username"]
+    db[username]["sats"] += sats
   return "OK"
 
 
@@ -125,9 +135,9 @@ def payment_updates():
 
 #TODO: Need to finish.
 def add_tokens_to_balance(username, tokens):
-  balance = db[username]["balance"]
+  balance = db[username]["sats"]
   balance += tokens
-  db[username]["balance"] = balance
+  db[username]["sats"] = balance
   return balance
 
 
@@ -138,6 +148,15 @@ def login():
   user_agent = request.headers.get('User-Agent')
   username = session.get('username')
   identity_hash = hash_func(ip_address, uuid, user_agent)
+  """if username:
+    balance = db[username]["sats"]
+    if balance >= 100:
+      session["identity_hash"] = identity_hash
+      session["sats"] = balance
+    elif balance <= 0:
+      db[username]["sats"] = 0
+      session["sats"] = 0
+      return render_template("pay.html", username=username)"""
   if request.method == 'POST':
     if 'prompt' in request.form:
       prompt = request.form.get('prompt')
@@ -194,7 +213,7 @@ def login():
           "uuid": uuid,
           "user_agent": user_agent,
           "identity_hash": identity_hash,
-          #"sats": 0,
+          "sats": 0,
           "conversations": {
             conversation: {
               "prompt":
@@ -438,6 +457,7 @@ def logout():
   session.pop("uuid", None)
   session.pop("identity_hash", None)
   session.pop("conversation", None)
+  session.pop("sats", None)
   return redirect("/")
 
 

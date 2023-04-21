@@ -4,6 +4,7 @@
 *.log
 *.txt
 *.md
+*.png
 *.pickle
 __pycache__/
 
