@@ -129,7 +129,7 @@ pre.code {
   align-items: center;
 }
 
-.tokens {
+.sats {
   position: fixed;
   bottom: 58px;
   right:  40%;
@@ -148,7 +148,7 @@ pre.code {
   font-size: 1.3em;
 }
 
-.tokens {
+.sats {
   right: 25%;
   margin:5px;
 }

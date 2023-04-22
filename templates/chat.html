@@ -30,8 +30,8 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
       <form action="/respond" method="post" onsubmit="sendMessage(event)">
         <div class="input-wrapper">
           {% if token_left %}
-            <div class="tokens">
-<span class="token"> Tokens Remaining: {{ token_left }}</span>
+            <div class="sats">
+<span class="sat"> Sats Remaining: {{ token_left }}</span>
             
             </div>
 {% endif %}

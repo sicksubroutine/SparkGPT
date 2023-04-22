@@ -19,10 +19,10 @@ URL = "https://legend.lnbits.com/api/v1/payments/"
 HEADERS = {"X-Api-Key": API_KEY, "Content-Type": "application/json"}
 TOKEN_LIMIT = 3000
 
-"""users = db.prefix("user")
+users = db.prefix("user")
 print(f"Number of Users: {len(users)}")
-for user in users:
-  print(db[user]["uuid"])"""
+"""for user in users:
+  del db[user]"""
 
 app = Flask(__name__, static_url_path='/static')
 app.secret_key = os.environ['sessionKey']
@@ -119,6 +119,7 @@ def webhook():
     sats = int(db["payments"][payment_hash]["amount"])
     username = db["payments"][payment_hash]["username"]
     db[username]["sats"] += sats
+    db[username]["recently_paid"] = True
   return "OK"
 
 
@@ -134,11 +135,14 @@ def payment_updates():
 
 
 #TODO: Need to finish.
+
+"""@app.route("/check_balance", )
+
 def add_tokens_to_balance(username, tokens):
   balance = db[username]["sats"]
   balance += tokens
   db[username]["sats"] = balance
-  return balance
+  return balance"""
 
 
 @app.route('/login', methods=['POST', 'GET'])
@@ -148,15 +152,6 @@ def login():
   user_agent = request.headers.get('User-Agent')
   username = session.get('username')
   identity_hash = hash_func(ip_address, uuid, user_agent)
-  """if username:
-    balance = db[username]["sats"]
-    if balance >= 100:
-      session["identity_hash"] = identity_hash
-      session["sats"] = balance
-    elif balance <= 0:
-      db[username]["sats"] = 0
-      session["sats"] = 0
-      return render_template("pay.html", username=username)"""
   if request.method == 'POST':
     if 'prompt' in request.form:
       prompt = request.form.get('prompt')
@@ -204,9 +199,6 @@ def login():
         session["identity_hash"] = identity_hash
         conversation = "conversation" + random_token()
         session["conversation"] = conversation
-        #if session["sats"] == 0:
-        #  return render_template("pay.html", username=username)
-        #session["sats"] = 0
         db[username] = {
           "username": username,
           "ip_address": ip_address,
@@ -214,6 +206,7 @@ def login():
           "user_agent": user_agent,
           "identity_hash": identity_hash,
           "sats": 0,
+          "recently_paid": False,
           "conversations": {
             conversation: {
               "prompt":
@@ -255,6 +248,7 @@ def chat():
     return redirect("/")
   text = request.args.get("t")
   username = session["username"]
+  print(username)
   conversation = session["conversation"]
   msg = db[username]["conversations"][conversation]["conversation_history"]
   if db.get(username, {}).get("conversations", {}).get(
@@ -269,13 +263,30 @@ def chat():
     if message["role"] != "system":
       message["content"] = markdown2.markdown(message["content"],
                                               extras=["fenced-code-blocks"])
+  # sats code
+  sats = session.get("sats")
+  database_sats = db[username]["sats"]
+  print(f"Sats in Chat: {sats}")
+  print(f"Sats in Database: {database_sats}")
+  if sats == None:
+    db[username]["sats"] = 0
+    session["sats"] = 0
+    return render_template("pay.html", username=username)
+  elif db[username]["recently_paid"] and database_sats > sats:
+    session["sats"] = database_sats
+    db[username]["recently_paid"] = False
+    sats = database_sats
+  elif sats <= 0:
+    db[username]["sats"] = 0
+    session["sats"] = 0
+    return render_template("pay.html", username=username)
   for index, message in enumerate(messages):
     message["index"] = index
   return render_template("chat.html",
                          messages=messages,
                          title=session.get("title"),
                          text=text,
-                         token_left=None)
+                         token_left=sats)
 
 
 @app.route("/respond", methods=["POST"])
@@ -305,6 +316,21 @@ def respond():
     if not message in conversation_history:
       conversation_history.append({"role": "user", "content": message})
   response, token_usage = res(messages)
+  # sats code, getting cost in sats
+  cost = get_bitcoin_cost(token_usage)
+  print(f"Cost: {cost}")
+  sats = session.get("sats")
+  print(f"Sats: {sats}")
+  db_sats = db[username]["sats"]
+  print(f"Sats in Database: {db_sats}")
+  sats = session["sats"] - cost
+  print(f"Sats: {sats}")
+  session["sats"] = sats
+  db[username]["sats"] = sats
+  sats = session.get("sats")
+  print(f"Sats: {sats}")
+  db_sats = db[username]["sats"]
+  print(f"Sats in Database: {db_sats}")
   if token_usage > TOKEN_LIMIT:
     oldest_assistant_message = next(
       (msg for msg in messages if msg["role"] == "assistant"), None)

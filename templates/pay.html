@@ -8,6 +8,10 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
 
   <style>
+    body {
+      background-color: black;
+      color: white;
+    }
     .container {
       top: 50%;
       padding: 0;
@@ -16,44 +20,79 @@
       height: 100%;
       text-align: center;
     }
+    #sats {
+      border-radius: 5px;
+      color: white;
+      background: linear-gradient(90deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0.75) 50%);
+      box-shadow: 0px 0px 4px 2px rgba(255,0,0,0.2);
+      padding: 5px;
+      font-family: Arial, sans-serif; 
+      font-size: 14px;
+    }
+    .centerme {
+      text-align: center;
+    }
     #checkmark {
       transition: transform 0.2s ease-in-out;
+    }
+    #generate-button {
+      color: white;
+      border-radius: 10px;
+      font-weight: bold;
+      box-shadow: 0px 0px 4px 2px rgba(0,0,0,0.2);
+      transition: all 0.3s ease-in-out;
+      background: linear-gradient(90deg, rgba(255,0,0,1) 0%, rgba(0,0,255,1) 60%);
+      font-family: Arial, sans-serif; font-size: 14px;
+      display: inline-block;
+      margin-right: 10px;
+      padding: 10px 32px;
+      margin: 2px auto;
+    }
+    #generate-button:hover {
+      border-radius: 10px;
+      font-weight: bold;
+      box-shadow: 0px 0px 4px 2px rgba(0,0,0,0.2);
+      transition: all 0.3s ease-in-out;
+      background: linear-gradient(90deg, rgba(0,0,255,0.5) 0%, rgba(255,0,0,0.25) 60%);
+      font-family: Arial, sans-serif; font-size: 14px;
+      display: inline-block;
+      margin-right: 10px; 
+      padding: 5px 32px;
+      margin: 2px auto;
     }
   </style>
   <title>Pay for ChatGPT with Bitcoin</title>
 </head>
 <body>
+  <h1 class="centerme">Top up your Chat Account with Sats!</h1>
   <center><form id="invoice-form">
-        <label for="sats">Sats:</label>
-        <input type="number" id="sats" name="sats" required>
-        <br>
-        <label for="memo">Memo:</label>
-        <input type="text" id="memo" name="memo" required>
-        <br>
+        <label for="<of></of>ts">Sats:</label>
+        <input type="text" id="sats" name="sats" required>
         <button type="submit" id="generate-button">Generate Invoice</button>
     </form></center><br><br>
   <center>
     <div id="checkmark"></div>
+    <div id="num_of_sats"></div><br>
     <div id="qr-code"></div><br><br>
   <div id="payment-message"></div></center>
 </body>
   <script>
     const invoiceForm = document.querySelector("#invoice-form");
-const generateButton = document.querySelector("#generate-button");
-const qrCodeDiv = document.querySelector("#qr-code");
-const satsInput = document.querySelector("#sats");
-const memoInput = document.querySelector("#memo");
+    const generateButton = document.querySelector("#generate-button");
+    const qrCodeDiv = document.querySelector("#qr-code");
+    const satsInput = document.querySelector("#sats");
+    const numOfSats = document.querySelector("#num_of_sats");
+    const link = document.createElement("a");
 
 invoiceForm.addEventListener("submit", (event) => {
     event.preventDefault(); 
     const sats = satsInput.value;
-    const memo = memoInput.value;
 
-    fetch(`/get_invoice?sats=${sats}&memo=${memo}`)
+    fetch(`/get_invoice?sats=${sats}`)
         .then(response => {
             if (response.ok) {
               satsInput.value = "";
-              memoInput.value = "";
+              qrCodeDiv.innerHTML = "";
               return response.json();
             } else {
                 throw new Error("Failed to generate invoice");
@@ -68,7 +107,10 @@ invoiceForm.addEventListener("submit", (event) => {
                 .then(qrCodeImagePath => {
                     image.src = qrCodeImagePath;
                     image.width = 500;
-                    qrCodeDiv.appendChild(image);
+                    numOfSats.innerHTML = "Invoice for " + sats + " Sats";
+                    link.href = "lightning:" + data.payment_request;
+                    link.appendChild(image);
+                    qrCodeDiv.appendChild(link);
                     startPolling();
                 })
                 .catch(error => console.error(error));
@@ -102,9 +144,9 @@ generateButton.addEventListener("click", () => {
                   icon.style.color = "green";
                   target.appendChild(icon);
                   qrCodeDiv.innerHTML = "";
-                  setTimeout(() => handlePaymentSuccess(), 2000);  
+                  setTimeout(() => handlePaymentSuccess(), 4000);  
                   source.close();
-                  window.location.href = "/login";
+                  window.location.href = "/chat";
                 }
             });
         }
