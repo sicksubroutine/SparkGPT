@@ -6,13 +6,9 @@ from replit import db
 
 ## TODO: Add more prompts.
 ## TODO: Make the front page look better.
-## --------------------------------------
-## TODO: Add Lightning Network payments.
-## ---- Integrate payment system
-## ---- Figure out how to handle tokens/payment ratio
-## ---- List the amount of token usage/credits left idicator on chat.html page
+## TODO: Make the chat app look better across different interfaces.
 ## TODO: Consider adding a way to login with the Lightning Network.
-##TODO: Add ability to change AI models.
+## TODO: Add ability to change AI models.
 
 API_KEY = os.environ['lnbits_api']
 URL = "https://legend.lnbits.com/api/v1/payments/"
@@ -120,6 +116,7 @@ def webhook():
     username = db["payments"][payment_hash]["username"]
     db[username]["sats"] += sats
     db[username]["recently_paid"] = True
+    clean_up_invoices()
   return "OK"
 
 
@@ -132,17 +129,6 @@ def payment_updates():
   else:
     data = 'data: {"status": "not paid"}\n\n'
   return Response(data, content_type='text/event-stream')
-
-
-#TODO: Need to finish.
-
-"""@app.route("/check_balance", )
-
-def add_tokens_to_balance(username, tokens):
-  balance = db[username]["sats"]
-  balance += tokens
-  db[username]["sats"] = balance
-  return balance"""
 
 
 @app.route('/login', methods=['POST', 'GET'])
@@ -266,8 +252,6 @@ def chat():
   # sats code
   sats = session.get("sats")
   database_sats = db[username]["sats"]
-  print(f"Sats in Chat: {sats}")
-  print(f"Sats in Database: {database_sats}")
   if sats == None:
     db[username]["sats"] = 0
     session["sats"] = 0
@@ -311,30 +295,20 @@ def respond():
       conversation_history.append(observed_dict)
   if request.method == 'POST':
     message = request.form.get("message")
-    print(f"Token Estimation: {estimate_tokens(message)}")
+    #print(f"Token Estimation: {estimate_tokens(message)}")
     messages.append({"role": "user", "content": message})
     if not message in conversation_history:
       conversation_history.append({"role": "user", "content": message})
   response, token_usage = res(messages)
   # sats code, getting cost in sats
   cost = get_bitcoin_cost(token_usage)
-  print(f"Cost: {cost}")
-  sats = session.get("sats")
-  print(f"Sats: {sats}")
-  db_sats = db[username]["sats"]
-  print(f"Sats in Database: {db_sats}")
-  sats = session["sats"] - cost
-  print(f"Sats: {sats}")
+  sats = session.get("sats") - cost
   session["sats"] = sats
   db[username]["sats"] = sats
-  sats = session.get("sats")
-  print(f"Sats: {sats}")
-  db_sats = db[username]["sats"]
-  print(f"Sats in Database: {db_sats}")
   if token_usage > TOKEN_LIMIT:
     oldest_assistant_message = next(
       (msg for msg in messages if msg["role"] == "assistant"), None)
-    print("Token limit reached. Removing oldest assistant message!")
+    #print("Token limit reached. Removing oldest assistant message!")
     if oldest_assistant_message:
       messages.remove(oldest_assistant_message)
   messages.append({"role": "assistant", "content": response})
@@ -372,7 +346,7 @@ def reset_messages():
   }]
   db[username]["conversations"][conversation].pop("summary")
   db[username]["conversations"][conversation].pop("short_summary")
-  print("summary removed")
+  #print("summary removed")
   session.pop("prompt", None)
   session
   return redirect(f"/?t={text}")
