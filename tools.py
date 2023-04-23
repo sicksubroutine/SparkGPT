@@ -1,4 +1,6 @@
-import string, random, uuid, hashlib, os, openai, time, requests
+import string, random, uuid, hashlib, os, openai, time, requests, logging
+
+logging.basicConfig(filename='logfile.log', level=logging.DEBUG)
 
 secretKey = os.environ['gpt-API']
 openai.api_key = f"{secretKey}"
@@ -86,30 +88,30 @@ def res(messages) -> str:
   token_usage = 0
   while retry:
     try:
-      print("Attempting to send message to assistant...")
+      logging.info("Attempting to send message to assistant...")
       response = openai.ChatCompletion.create(model="gpt-3.5-turbo",
                                               messages=messages)
       assistant_response = response["choices"][0]["message"]["content"]
       token_usage = response["usage"]["total_tokens"]
-      print(response["usage"])
+      logging.info(response["usage"])
       retry = False
       break
     except openai.error.APIError as e:
-      print(f"OpenAI API returned an API Error: {e}")
+      logging.error(f"OpenAI API returned an API Error: {e}")
       retry_count += 1
       if retry_count >= max_retries:
         retry = False
         break
       time.sleep(backoff_time * 2**retry_count)
     except openai.error.APIConnectionError as e:
-      print(f"Failed to connect to OpenAI API: {e}")
+      logging.error(f"Failed to connect to OpenAI API: {e}")
       retry_count += 1
       if retry_count >= max_retries:
         retry = False
         break
       time.sleep(backoff_time * 2**retry_count)
     except openai.error.RateLimitError as e:
-      print(f"OpenAI API request exceeded rate limit: {e}")
+      logging.error(f"OpenAI API request exceeded rate limit: {e}")
       retry_count += 1
       if retry_count >= max_retries:
         retry = False
