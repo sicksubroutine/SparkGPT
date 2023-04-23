@@ -1,8 +1,10 @@
 from flask import Flask, render_template, session, request, redirect, send_file, jsonify, Response
 from flask_socketio import SocketIO
-import os, markdown2, requests, qrcode, random, traceback
+import os, markdown2, requests, qrcode, random, traceback, logging
 from tools import random_token, get_IP_Address, uuid_func, hash_func, prompt_get, check_old_markdown, res, get_bitcoin_cost, estimate_tokens
 from replit import db
+
+logging.basicConfig(filename='logfile.log', level=logging.DEBUG)
 
 ## TODO: Add more prompts.
 ## TODO: Make the front page look better.
@@ -16,7 +18,7 @@ HEADERS = {"X-Api-Key": API_KEY, "Content-Type": "application/json"}
 TOKEN_LIMIT = 3000
 
 users = db.prefix("user")
-print(f"Number of Users: {len(users)}")
+logging.debug(f"Number of Users: {len(users)}")
 """for user in users:
   del db[user]"""
 
@@ -77,7 +79,7 @@ def get_invoice():
     session["payment_hash"] = payment_hash
     return {"status": "success", "payment_request": payment_request}
   else:
-    print("Error:", res.status_code, res.reason)
+    logging.error("Error:", res.status_code, res.reason)
 
 
 @app.route("/qrcode_gen", methods=['GET'])
@@ -100,7 +102,7 @@ def payment_check(payment_hash):
     paid = data.get("paid")
     return paid
   else:
-    print("Error:", response.status_code, response.reason)
+    logging.error("Error:", response.status_code, response.reason)
 
 
 @app.route("/webhook", methods=["POST"])
@@ -110,7 +112,7 @@ def webhook():
   paid = payment_check(payment_hash)
   if paid:
     text = f"{payment_hash} has been paid!"
-    print(text)
+    logging.info(text)
     db["payments"][payment_hash]["invoice_status"] = "paid"
     sats = int(db["payments"][payment_hash]["amount"])
     username = db["payments"][payment_hash]["username"]
@@ -234,7 +236,6 @@ def chat():
     return redirect("/")
   text = request.args.get("t")
   username = session["username"]
-  print(username)
   conversation = session["conversation"]
   msg = db[username]["conversations"][conversation]["conversation_history"]
   if db.get(username, {}).get("conversations", {}).get(
@@ -348,7 +349,8 @@ def reset_messages():
   db[username]["conversations"][conversation].pop("short_summary")
   #print("summary removed")
   session.pop("prompt", None)
-  session
+  session.pop("title", None)
+  session.pop("conversation", None)
   return redirect(f"/?t={text}")
 
 
@@ -384,8 +386,7 @@ def delete_msg():
     del db[username]["conversations"][conversation]["messages"][msg_index-difference]
     return redirect("/chat")
   except Exception as e:
-    print(traceback.format_exc())
-    print(e)
+    logging.error(traceback.format_exc())
     return redirect("/chat")
 
 
@@ -442,7 +443,6 @@ def export_messages():
   filename = f"{summary}.md"
   path = "static/markdown/"
   path_filename = path + filename
-
   with open(path_filename, "w") as f:
     f.write(markdown)
   return send_file(path_filename, as_attachment=True)
