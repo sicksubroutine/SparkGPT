@@ -5,6 +5,8 @@ logging.basicConfig(filename='logfile.log', level=logging.DEBUG)
 secretKey = os.environ['gpt-API']
 openai.api_key = f"{secretKey}"
 
+SATS = 0.00000001
+DOLLAR_PER_1K_TOKENS = 0.0099 # cost of a token
 
 def random_token() -> str:
   ran_token = ''.join(
@@ -141,10 +143,7 @@ def estimate_tokens(text, method="max"):
     return "Invalid method. Use 'average', 'words', 'chars', 'max', or 'min'."
   return int(output) + 5
 
-
 def get_bitcoin_cost(tokens):
-  SATS = 0.00000001
-  DOLLAR_PER_1K_TOKENS = 0.025
   url = "https://api.kraken.com/0/public/Ticker?pair=xbtusd"
   r = requests.get(url)
   data = r.json()["result"]["XXBTZUSD"]["c"]

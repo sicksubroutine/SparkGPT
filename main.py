@@ -4,12 +4,13 @@ import os, markdown2, requests, qrcode, random, traceback, logging
 from tools import random_token, get_IP_Address, uuid_func, hash_func, prompt_get, check_old_markdown, res, get_bitcoin_cost, estimate_tokens
 from replit import db
 
-logging.basicConfig(filename='logfile.log', level=logging.DEBUG)
+logging.basicConfig(filename='logfile.log', level=logging.INFO)
 
 ## TODO: Add more prompts.
 ## TODO: Make the front page look better.
 ## TODO: Make the chat app look better across different interfaces.
 ## TODO: Consider adding a way to login with the Lightning Network.
+## LNURL-AUTH : https://github.com/lnurl/luds/blob/luds/04.md
 ## TODO: Add ability to change AI models.
 
 API_KEY = os.environ['lnbits_api']
@@ -20,7 +21,10 @@ TOKEN_LIMIT = 3000
 users = db.prefix("user")
 logging.debug(f"Number of Users: {len(users)}")
 """for user in users:
-  del db[user]"""
+  if db[user]["username"] == "userJZ2NT0JPQCZHUX1O":
+    db[user]["sats"] = 75
+    #db[user]["recently_paid"] = True"""
+    
 
 app = Flask(__name__, static_url_path='/static')
 app.secret_key = os.environ['sessionKey']
@@ -236,6 +240,8 @@ def chat():
     return redirect("/")
   text = request.args.get("t")
   username = session["username"]
+  #session["sats"] = 75
+  logging.info(f"Current Username is: {username}")
   conversation = session["conversation"]
   msg = db[username]["conversations"][conversation]["conversation_history"]
   if db.get(username, {}).get("conversations", {}).get(
@@ -264,6 +270,10 @@ def chat():
   elif sats <= 0:
     db[username]["sats"] = 0
     session["sats"] = 0
+    return render_template("pay.html", username=username)
+  if session.get("force_buy"):
+    db[username]["sats"] = sats
+    session["force_buy"] = False
     return render_template("pay.html", username=username)
   for index, message in enumerate(messages):
     message["index"] = index
@@ -296,11 +306,23 @@ def respond():
       conversation_history.append(observed_dict)
   if request.method == 'POST':
     message = request.form.get("message")
-    #print(f"Token Estimation: {estimate_tokens(message)}")
+    message_estimate = estimate_tokens(message)
+    session["message_estimate"] = message_estimate
+    previous_token_usage = session.get("token_usage")
+    if previous_token_usage != None and message_estimate != None:
+      total_tokens = previous_token_usage + message_estimate
+      logging.debug(f"Token Estimation: {message_estimate}")
+      pre_cost = get_bitcoin_cost(total_tokens)
+      if pre_cost > session["sats"]:
+        # check to see if cost is likely to exceed balance.
+        logging.info(f"{pre_cost} sats cost is more than {session['sats']} sats balance")
+        session["force_buy"] = True
+        return jsonify({"response": ""})
     messages.append({"role": "user", "content": message})
     if not message in conversation_history:
       conversation_history.append({"role": "user", "content": message})
   response, token_usage = res(messages)
+  session["token_usage"] = token_usage
   # sats code, getting cost in sats
   cost = get_bitcoin_cost(token_usage)
   sats = session.get("sats") - cost
@@ -309,7 +331,7 @@ def respond():
   if token_usage > TOKEN_LIMIT:
     oldest_assistant_message = next(
       (msg for msg in messages if msg["role"] == "assistant"), None)
-    #print("Token limit reached. Removing oldest assistant message!")
+    logging.info("Token limit reached. Removing oldest assistant message!")
     if oldest_assistant_message:
       messages.remove(oldest_assistant_message)
   messages.append({"role": "assistant", "content": response})
@@ -347,7 +369,7 @@ def reset_messages():
   }]
   db[username]["conversations"][conversation].pop("summary")
   db[username]["conversations"][conversation].pop("short_summary")
-  #print("summary removed")
+  logging.info("summary removed")
   session.pop("prompt", None)
   session.pop("title", None)
   session.pop("conversation", None)
@@ -458,6 +480,7 @@ def logout():
   session.pop("identity_hash", None)
   session.pop("conversation", None)
   session.pop("sats", None)
+  session.pop("token_usage", None)
   return redirect("/")
 
 

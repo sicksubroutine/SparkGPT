@@ -64,10 +64,11 @@
   <title>Pay for ChatGPT with Bitcoin</title>
 </head>
 <body>
-  <h1 class="centerme">Top up your Chat Account with Sats!</h1>
+  <h1 class="centerme">Not enough Sats to Chat!</h1>
+  <h3 class="centerme">Top up now!</h3>
   <center><form id="invoice-form">
         <label for="<of></of>ts">Sats:</label>
-        <input type="text" id="sats" name="sats" required>
+        <input type="text" id="sats" name="sats" pattern="[0-9]*" inputmode="numeric" title="Please enter a valid number!" required>
         <button type="submit" id="generate-button">Generate Invoice</button>
     </form></center><br><br>
   <center>
