@@ -6,6 +6,7 @@
 *.md
 *.png
 *.pickle
+*.sqlite
 __pycache__/
 
 # ignore all the replit stuff

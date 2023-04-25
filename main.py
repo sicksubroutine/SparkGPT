@@ -12,6 +12,7 @@ logging.basicConfig(filename='logfile.log', level=logging.INFO)
 ## TODO: Consider adding a way to login with the Lightning Network.
 ## LNURL-AUTH : https://github.com/lnurl/luds/blob/luds/04.md
 ## TODO: Add ability to change AI models.
+## TODO: Move away from Replit database and use sqllite.
 
 API_KEY = os.environ['lnbits_api']
 URL = "https://legend.lnbits.com/api/v1/payments/"
@@ -408,7 +409,7 @@ def delete_msg():
     del db[username]["conversations"][conversation]["messages"][msg_index-difference]
     return redirect("/chat")
   except Exception as e:
-    logging.error(traceback.format_exc())
+    logging.error(e)
     return redirect("/chat")
 
 
