@@ -1,6 +1,6 @@
 from flask import Flask, render_template, session, request, redirect, send_file, jsonify, Response
 from flask_socketio import SocketIO
-import os, markdown2, requests, qrcode, random, traceback, logging
+import os, markdown2, requests, qrcode, random, logging
 from tools import random_token, get_IP_Address, uuid_func, hash_func, prompt_get, check_old_markdown, res, get_bitcoin_cost, estimate_tokens
 from replit import db
 
@@ -21,18 +21,13 @@ TOKEN_LIMIT = 3000
 
 users = db.prefix("user")
 logging.debug(f"Number of Users: {len(users)}")
-"""for user in users:
-  if db[user]["username"] == "userJZ2NT0JPQCZHUX1O":
-    db[user]["sats"] = 75
-    #db[user]["recently_paid"] = True"""
-    
+"""
+for user in users:
+"""
 
 app = Flask(__name__, static_url_path='/static')
 app.secret_key = os.environ['sessionKey']
 socketio = SocketIO(app)
-
-def prompt_choose(prompt) -> str:
-  return prompt_get(prompt)
 
 
 @app.route("/", methods=["GET"])
@@ -44,11 +39,13 @@ def index():
     conv = db[username]["conversations"]
   return render_template("index.html", text=text, conversations=conv)
 
+
 def clean_up_invoices():
   path = "static/qr/"
   for filename in os.listdir(path):
     if filename.endswith(".png"):
       os.remove(path + filename)
+
 
 @app.route('/get_invoice', methods=['GET'])
 def get_invoice():
@@ -148,7 +145,7 @@ def login():
   if request.method == 'POST':
     if 'prompt' in request.form:
       prompt = request.form.get('prompt')
-      prompt_dict = prompt_choose(prompt)
+      prompt_dict = prompt_get(prompt)
       chosen_prompt = prompt_dict["prompt"]
       title = prompt_dict["title"]
       session["title"] = title
@@ -164,7 +161,7 @@ def login():
     session["conversation"] = conversation
     prompt = db[username]["conversations"][conversation]["prompt"]
     if prompt != "CustomPrompt":
-      prompt_dict = prompt_choose(prompt)
+      prompt_dict = prompt_get(prompt)
       title = prompt_dict["title"]
       session["title"] = title
     else:
@@ -241,7 +238,6 @@ def chat():
     return redirect("/")
   text = request.args.get("t")
   username = session["username"]
-  #session["sats"] = 75
   logging.info(f"Current Username is: {username}")
   conversation = session["conversation"]
   msg = db[username]["conversations"][conversation]["conversation_history"]
@@ -256,7 +252,7 @@ def chat():
   for message in messages:
     if message["role"] != "system":
       message["content"] = markdown2.markdown(message["content"],
-                                              extras=["fenced-code-blocks"])
+                                   extras=["fenced-code-blocks"])
   # sats code
   sats = session.get("sats")
   database_sats = db[username]["sats"]
@@ -341,8 +337,7 @@ def respond():
   users = db.prefix("user")
   for user in users:
     if db[user]["username"] == session["username"]:
-      db[user]["conversations"][conversation][
-        "conversation_history"] = conversation_history
+      db[user]["conversations"][conversation]["conversation_history"] = conversation_history
       db[user]["conversations"][conversation]["messages"] = messages
       break
   return jsonify({"response": response})
@@ -404,9 +399,8 @@ def delete_msg():
     db[username]["conversations"][conversation]["conversation_history"])
   difference = length_con_hist - length_msg
   try:
-    del db[username]["conversations"][conversation]["conversation_history"][
-      msg_index]
-    del db[username]["conversations"][conversation]["messages"][msg_index-difference]
+    del db[username]["conversations"][conversation]["conversation_history"][msg_index]
+    del db[username]["conversations"][conversation]["messages"][msg_index - difference]
     return redirect("/chat")
   except Exception as e:
     logging.error(e)
@@ -448,7 +442,6 @@ def summary_of_messages():
 def export_messages():
   if not session.get("username"):
     return redirect("/")
-  # Clearing out old markdown files.
   check_old_markdown()
   username = session["username"]
   conversation = session["conversation"]
