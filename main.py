@@ -2,6 +2,7 @@ from flask import Flask, render_template, session, request, redirect, send_file,
 from flask_socketio import SocketIO
 import os, markdown2, requests, qrcode, random, logging
 from tools import random_token, get_IP_Address, uuid_func, hash_func, prompt_get, check_old_markdown, res, get_bitcoin_cost, estimate_tokens
+from db_manage import DatabaseManager
 from replit import db
 
 logging.basicConfig(filename='logfile.log', level=logging.INFO)
@@ -18,6 +19,8 @@ API_KEY = os.environ['lnbits_api']
 URL = "https://legend.lnbits.com/api/v1/payments/"
 HEADERS = {"X-Api-Key": API_KEY, "Content-Type": "application/json"}
 TOKEN_LIMIT = 3000
+
+#database = DatabaseManager("prime_database.db")
 
 users = db.prefix("user")
 logging.debug(f"Number of Users: {len(users)}")
@@ -189,6 +192,7 @@ def login():
         session["identity_hash"] = identity_hash
         conversation = "conversation" + random_token()
         session["conversation"] = conversation
+        #database.insert_user(username, ip_address, uuid, user_agent, identity_hash)
         db[username] = {
           "username": username,
           "ip_address": ip_address,
@@ -252,7 +256,7 @@ def chat():
   for message in messages:
     if message["role"] != "system":
       message["content"] = markdown2.markdown(message["content"],
-                                   extras=["fenced-code-blocks"])
+                                              extras=["fenced-code-blocks"])
   # sats code
   sats = session.get("sats")
   database_sats = db[username]["sats"]
@@ -312,7 +316,8 @@ def respond():
       pre_cost = get_bitcoin_cost(total_tokens)
       if pre_cost > session["sats"]:
         # check to see if cost is likely to exceed balance.
-        logging.info(f"{pre_cost} sats cost is more than {session['sats']} sats balance")
+        logging.info(
+          f"{pre_cost} sats cost is more than {session['sats']} sats balance")
         session["force_buy"] = True
         return jsonify({"response": ""})
     messages.append({"role": "user", "content": message})
@@ -337,7 +342,8 @@ def respond():
   users = db.prefix("user")
   for user in users:
     if db[user]["username"] == session["username"]:
-      db[user]["conversations"][conversation]["conversation_history"] = conversation_history
+      db[user]["conversations"][conversation][
+        "conversation_history"] = conversation_history
       db[user]["conversations"][conversation]["messages"] = messages
       break
   return jsonify({"response": response})
@@ -399,8 +405,10 @@ def delete_msg():
     db[username]["conversations"][conversation]["conversation_history"])
   difference = length_con_hist - length_msg
   try:
-    del db[username]["conversations"][conversation]["conversation_history"][msg_index]
-    del db[username]["conversations"][conversation]["messages"][msg_index - difference]
+    del db[username]["conversations"][conversation]["conversation_history"][
+      msg_index]
+    del db[username]["conversations"][conversation]["messages"][msg_index -
+                                                                difference]
     return redirect("/chat")
   except Exception as e:
     logging.error(e)
