@@ -14,6 +14,7 @@ logging.basicConfig(filename='logfile.log', level=logging.INFO)
 ## LNURL-AUTH : https://github.com/lnurl/luds/blob/luds/04.md
 ## TODO: Add ability to change AI models.
 ## TODO: Move away from Replit database and use sqllite.
+## TODO: Add payment database stuff.
 
 API_KEY = os.environ['lnbits_api']
 URL = "https://legend.lnbits.com/api/v1/payments/"
@@ -39,6 +40,7 @@ def index():
   conv = []
   if session.get("username") and session.get("identity_hash"):
     username = session["username"]
+    # TODO: pull conversations from database
     conv = db[username]["conversations"]
   return render_template("index.html", text=text, conversations=conv)
 
@@ -69,6 +71,7 @@ def get_invoice():
     payment_request = invoice.get("payment_request")
     payment_hash = invoice.get("payment_hash")
     username = session.get("username")
+    # TODO: redo payment flow using new database
     new_payment = {
       "username": username,
       "amount": sats,
@@ -118,6 +121,7 @@ def webhook():
   if paid:
     text = f"{payment_hash} has been paid!"
     logging.info(text)
+    # TODO: create database for payment
     db["payments"][payment_hash]["invoice_status"] = "paid"
     sats = int(db["payments"][payment_hash]["amount"])
     username = db["payments"][payment_hash]["username"]
@@ -130,6 +134,7 @@ def webhook():
 @app.route('/payment_updates')
 def payment_updates():
   payment_hash = session["payment_hash"]
+  # TODO: pull information from new payment database
   invoice_status = db['payments'][payment_hash].get("invoice_status")
   if invoice_status == 'paid':
     data = 'data: {"status": "paid"}\n\n'
@@ -162,6 +167,7 @@ def login():
   elif 'conversation' in request.args:
     conversation = request.args.get('conversation')
     session["conversation"] = conversation
+    # TODO: add conversation to database
     prompt = db[username]["conversations"][conversation]["prompt"]
     if prompt != "CustomPrompt":
       prompt_dict = prompt_get(prompt)
@@ -192,7 +198,8 @@ def login():
         session["identity_hash"] = identity_hash
         conversation = "conversation" + random_token()
         session["conversation"] = conversation
-        #database.insert_user(username, ip_address, uuid, user_agent, identity_hash)
+        # TODO: database.insert_user(username, ip_address, uuid, user_agent, identity_hash)
+        # TODO: Add Conversation to Database using Database manager class.
         db[username] = {
           "username": username,
           "ip_address": ip_address,
@@ -219,9 +226,9 @@ def login():
         return redirect("/chat")
     else:
       if session.get("username") and session.get("identity_hash"):
-        username = session.get("username")
         conversation = "conversation" + random_token()
         session["conversation"] = conversation
+        # TODO: figure out if we need to pull more information from database here
         db[username]["conversations"][conversation] = {
           "prompt": prompt,
           "conversation_history": [{
@@ -244,10 +251,13 @@ def chat():
   username = session["username"]
   logging.info(f"Current Username is: {username}")
   conversation = session["conversation"]
+  # TODO: pull the user from database
+  # TODO: pull conversations from database using username, pull conversation history
   msg = db[username]["conversations"][conversation]["conversation_history"]
   if db.get(username, {}).get("conversations", {}).get(
       conversation, {}).get("summary") is None and len(msg) > 1:
     long_res, short_res = summary_of_messages()
+    # TODO: Add summeries to database
     db[username]["conversations"][conversation]["summary"] = long_res
     db[username]["conversations"][conversation]["short_summary"] = short_res
   messages = []
@@ -259,13 +269,16 @@ def chat():
                                               extras=["fenced-code-blocks"])
   # sats code
   sats = session.get("sats")
+  # TODO: grab sats from database
   database_sats = db[username]["sats"]
+  # TODO: Recently Paid = Database pull
   if sats == None:
     db[username]["sats"] = 0
     session["sats"] = 0
     return render_template("pay.html", username=username)
   elif db[username]["recently_paid"] and database_sats > sats:
     session["sats"] = database_sats
+    # TODO: update database with recently paid value
     db[username]["recently_paid"] = False
     sats = database_sats
   elif sats <= 0:
@@ -273,6 +286,7 @@ def chat():
     session["sats"] = 0
     return render_template("pay.html", username=username)
   if session.get("force_buy"):
+    # TODO: database stuff
     db[username]["sats"] = sats
     session["force_buy"] = False
     return render_template("pay.html", username=username)
@@ -292,6 +306,7 @@ def respond():
   messages = []
   username = session["username"]
   conversation = session["conversation"]
+  # TODO: grab messages and conversation history from database
   msg = db[username]["conversations"][conversation]["messages"]
   if db[username]["conversations"][conversation][
       "conversation_history"] is None:
@@ -329,6 +344,7 @@ def respond():
   cost = get_bitcoin_cost(token_usage)
   sats = session.get("sats") - cost
   session["sats"] = sats
+  # TODO: update database with new sats value
   db[username]["sats"] = sats
   if token_usage > TOKEN_LIMIT:
     oldest_assistant_message = next(
@@ -339,6 +355,7 @@ def respond():
   messages.append({"role": "assistant", "content": response})
   if not response in conversation_history:
     conversation_history.append({"role": "assistant", "content": response})
+  # TODO: convert database stuff here too
   users = db.prefix("user")
   for user in users:
     if db[user]["username"] == session["username"]:
@@ -357,6 +374,7 @@ def reset_messages():
   text = "Chat Reset!"
   prompt = session.get("prompt")
   conversation = session["conversation"]
+  # TODO: More Database updates here
   db[username]["conversations"][conversation]["messages"] = [{
     "role":
     "system",
@@ -384,6 +402,7 @@ def delete_convo():
     return redirect("/")
   username = session["username"]
   conversation = request.args["conversation"]
+  # TODO: more database updates here
   users = db.prefix("user")
   for user in users:
     if db[user]["username"] == username:
@@ -400,6 +419,7 @@ def delete_msg():
   username = session["username"]
   conversation = session["conversation"]
   msg_index = int(request.args["msg"])
+  # TODO: Figure out how to do delete messages via database update
   length_msg = len(db[username]["conversations"][conversation]["messages"])
   length_con_hist = len(
     db[username]["conversations"][conversation]["conversation_history"])
@@ -420,6 +440,7 @@ def summary_of_messages():
     return redirect("/")
   username = session["username"]
   conversation = session["conversation"]
+  # TODO: Doing Message Summary Work via Database pull
   messages = db[username]["conversations"][conversation]["messages"]
   summary_msgs = ""
   for index, message in enumerate(messages):
@@ -453,6 +474,7 @@ def export_messages():
   check_old_markdown()
   username = session["username"]
   conversation = session["conversation"]
+  # TODO: Pull conversation history and messages from database
   messages = db[username]["conversations"][conversation][
     "conversation_history"]
   summary = db[username]["conversations"][conversation]["short_summary"]
