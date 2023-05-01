@@ -53,15 +53,11 @@ def before_request():
 @app.route("/", methods=["GET"])
 def index():
   text = request.args.get("t")
-  conv = []
   if session.get("username") and session.get("identity_hash"):
     username = session["username"]
-    # TODO: pull conversations from database
     d_base = g.d_base
     convo = d_base.get_conversations_for_user(username)
     conv = {}
-    
-      
     conv = {
     c['id']: {
       'prompt': c['prompt'],
@@ -268,8 +264,9 @@ def login():
       if session.get("username") and session.get("identity_hash"):
         conversation = "conversation" + random_token()
         session["conversation"] = conversation
-        # TODO: figure out if we need to pull more information from database here
-        print("Hitting bottom of the login function")
+        d_base = g.d_base
+        convo = d_base.insert_conversation(username, prompt, chosen_prompt)
+        session["convo"] = convo["conversation_id"]
         db[username]["conversations"][conversation] = {
           "prompt": prompt,
           "conversation_history": [{
