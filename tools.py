@@ -1,6 +1,6 @@
 import string, random, uuid, hashlib, os, openai, time, requests, logging
 
-logging.basicConfig(filename='logfile.log', level=logging.DEBUG)
+logging.basicConfig(filename='logfile.log', level=logging.INFO)
 
 secretKey = os.environ['gpt-API']
 openai.api_key = f"{secretKey}"

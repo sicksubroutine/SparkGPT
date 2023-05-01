@@ -18,11 +18,13 @@ class DatabaseManager:
         );
         
         CREATE TABLE IF NOT EXISTS conversations (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT,
-            prompt TEXT,
-            FOREIGN KEY (username) REFERENCES users (username)
-        );
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          username TEXT,
+          prompt TEXT,
+          summary TEXT DEFAULT '',
+          short_summary TEXT DEFAULT '',
+          FOREIGN KEY (username) REFERENCES users (username)
+      );
         
         CREATE TABLE IF NOT EXISTS conversation_history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -5,7 +5,7 @@ from tools import random_token, get_IP_Address, uuid_func, hash_func, prompt_get
 from db_manage import DatabaseManager
 from replit import db
 
-logging.basicConfig(filename='logfile.log', level=logging.INFO)
+logging.basicConfig(filename='logfile.log', level=logging.error)
 
 ## TODO: Add more prompts.
 ## TODO: Make the front page look better.
@@ -28,11 +28,11 @@ socketio = SocketIO(app)
 DATABASE = "prime_database.db"
 
 users = db.prefix("user")
-logging.debug(f"Number of Users: {len(users)}")
+logging.info(f"Number of Users: {len(users)}")
 
-"""
-for user in users:
-"""
+
+"""for user in users:
+  del db[user]"""
 
 def open_db():
     if 'database' not in g:
@@ -57,7 +57,20 @@ def index():
   if session.get("username") and session.get("identity_hash"):
     username = session["username"]
     # TODO: pull conversations from database
-    conv = db[username]["conversations"]
+    d_base = g.d_base
+    convo = d_base.get_conversations_for_user(username)
+    conv = {}
+    
+      
+    conv = {
+    c['id']: {
+      'prompt': c['prompt'],
+      'summary': c['summary']
+      }
+      for c in convo
+    }
+      
+    #conv = db[username]["conversations"]
   return render_template("index.html", text=text, conversations=conv)
 
 
@@ -225,6 +238,8 @@ def login():
         # TODO: Add Conversation to Database using Database manager class.
         convo = d_base.insert_conversation(username, prompt, chosen_prompt)
         print(f"New conversation: {convo}")
+        session["convo"] = convo["conversation_id"]
+        print(f"New conversation: {convo['conversation_id']}")
         db[username] = {
           "username": username,
           "ip_address": ip_address,
@@ -285,6 +300,9 @@ def chat():
     # TODO: Add summeries to database
     db[username]["conversations"][conversation]["summary"] = long_res
     db[username]["conversations"][conversation]["short_summary"] = short_res
+    convo = session.get("convo")
+    d_base = g.d_base
+    d_base.update_conversation_summaries(convo, long_res, short_res)
   messages = []
   for observed_dict in msg.value:
     messages.append(observed_dict.value)
@@ -475,7 +493,7 @@ def summary_of_messages():
       summary_msgs += message["content"]
     elif message["role"] == "assistant":
       pass
-  prompt = "The user's question or request should be summerized into five words or less. No explanation or elaboration. Response needs to be five words or less, no puncutation."
+  prompt = "The user's question or request should be summerized into seven words or less. No explanation or elaboration. Response needs to be seven words or less, no puncutation."
   arr = [{
     "role": "system",
     "content": f"{prompt}"
@@ -534,4 +552,4 @@ def logout():
 
 
 if __name__ == "__main__":
-  socketio.run(app, debug=True, host='0.0.0.0', port=81)
+  socketio.run(app, debug=False, host='0.0.0.0', port=81)
