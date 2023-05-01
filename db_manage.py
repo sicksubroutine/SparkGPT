@@ -1,46 +1,56 @@
-import sqlite3
-
 class DatabaseManager:
 
-  def __init__(self, db_name):
-    self.conn = sqlite3.connect(db_name)
+  def __init__(self, open_db):
+    self.open_db = open_db
     self.setup_database()
 
   def setup_database(self):
+    self.conn = self.open_db()
     schema = '''
-      CREATE TABLE IF NOT EXISTS users (
-          username TEXT PRIMARY KEY,
-          ip_address TEXT,
-          uuid TEXT,
-          user_agent TEXT,
-          identity_hash TEXT,
-          sats INTEGER,
-          recently_paid BOOLEAN
-      );
-
-      CREATE TABLE IF NOT EXISTS conversations (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          username TEXT,
-          prompt TEXT,
-          FOREIGN KEY (username) REFERENCES users (username)
-      );
-
-      CREATE TABLE IF NOT EXISTS conversation_history (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          conversation_id INTEGER,
-          role TEXT,
-          content TEXT,
-          FOREIGN KEY (conversation_id) REFERENCES conversations (id)
-      );
-
-      CREATE TABLE IF NOT EXISTS messages (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          conversation_id INTEGER,
-          role TEXT,
-          content TEXT,
-          FOREIGN KEY (conversation_id) REFERENCES conversations (id)
-      );
-      '''
+        CREATE TABLE IF NOT EXISTS users (
+            username TEXT PRIMARY KEY,
+            ip_address TEXT,
+            uuid TEXT,
+            user_agent TEXT,
+            identity_hash TEXT,
+            sats INTEGER,
+            recently_paid BOOLEAN
+        );
+        
+        CREATE TABLE IF NOT EXISTS conversations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT,
+            prompt TEXT,
+            FOREIGN KEY (username) REFERENCES users (username)
+        );
+        
+        CREATE TABLE IF NOT EXISTS conversation_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            conversation_id INTEGER,
+            role TEXT,
+            content TEXT,
+            FOREIGN KEY (conversation_id) REFERENCES conversations (id)
+        );
+        
+        CREATE TABLE IF NOT EXISTS messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            conversation_id INTEGER,
+            role TEXT,
+            content TEXT,
+            FOREIGN KEY (conversation_id) REFERENCES conversations (id)
+        );
+        
+        CREATE TABLE IF NOT EXISTS payments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT,
+            amount INTEGER,
+            memo TEXT,
+            payment_request TEXT,
+            payment_hash TEXT,
+            invoice_status TEXT,
+            FOREIGN KEY (username) REFERENCES users (username)
+        );
+        '''
     self.conn.executescript(schema)
     self.conn.commit()
 
@@ -71,13 +81,31 @@ class DatabaseManager:
     self.conn.execute("DELETE FROM users WHERE username=?", (username, ))
     self.conn.commit()
 
-  def insert_conversation(self, username, prompt):
-    cursor = self.conn.cursor()
-    cursor.execute(
-      "INSERT INTO conversations (username, prompt) VALUES (?, ?)",
-      (username, prompt))
-    self.conn.commit()
-    return cursor.lastrowid
+  def insert_conversation(self, username, prompt, chosen_prompt):
+      
+        cursor = self.conn.cursor()
+        cursor.execute("INSERT INTO conversations (username, prompt) VALUES (?, ?)", (username, prompt))
+        conversation_id = cursor.lastrowid
+        self.conn.commit()
+
+        cursor.execute("INSERT INTO conversation_history (conversation_id, role, content) VALUES (?, ?, ?)",
+                       (conversation_id, 'system', chosen_prompt))
+        conversation_history_id = cursor.lastrowid
+        self.conn.commit()
+
+        cursor.execute("INSERT INTO messages (conversation_id, role, content) VALUES (?, ?, ?)",
+                       (conversation_id, 'system', chosen_prompt))
+        message_id = cursor.lastrowid
+        self.conn.commit()
+
+        conversation_data = {
+            "conversation_id": conversation_id,
+            "conversation_history_id": conversation_history_id,
+            "message_id": message_id
+        }
+
+
+        return conversation_data
 
   def update_conversation_summaries(self, conversation_id, long_summary, short_summary):
     self.conn.execute('''
@@ -127,3 +155,39 @@ class DatabaseManager:
     cursor.execute("SELECT * FROM messages WHERE conversation_id=?",
                    (conversation_id, ))
     return cursor.fetchall()
+
+  def insert_payment(self, username, amount, memo, payment_request, payment_hash, invoice_status):
+    self.conn.execute(
+        '''
+        INSERT INTO payments (username, amount, memo, payment_request, payment_hash, invoice_status)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ''', (username, amount, memo, payment_request, payment_hash, invoice_status))
+    self.conn.commit()
+
+  def get_payment(self, payment_hash):
+    cursor = self.conn.cursor()
+    cursor.execute("SELECT * FROM payments WHERE payment_hash=?", (payment_hash,))
+    return cursor.fetchone()
+
+  def get_all_payments(self):
+    cursor = self.conn.cursor()
+    cursor.execute("SELECT * FROM payments")
+    return cursor.fetchall()
+
+  def update_payment(self, payment_hash, field, value):
+    self.conn.execute(f"UPDATE payments SET {field}=? WHERE payment_hash=?",
+                      (value, payment_hash))
+    self.conn.commit()
+      
+  def get_invoice_status(self, payment_hash):
+    cursor = self.conn.cursor()
+    cursor.execute("SELECT invoice_status FROM payments WHERE payment_hash=?", (payment_hash,))
+    result = cursor.fetchone()
+    if result:
+        return result[0]
+    else:
+        return None
+
+  def delete_payment(self, payment_hash):
+    self.conn.execute("DELETE FROM payments WHERE payment_hash=?", (payment_hash,))
+    self.conn.commit()

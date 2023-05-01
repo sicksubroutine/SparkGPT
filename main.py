@@ -1,6 +1,6 @@
-from flask import Flask, render_template, session, request, redirect, send_file, jsonify, Response
+from flask import Flask, render_template, session, request, redirect, send_file, jsonify, Response, g
 from flask_socketio import SocketIO
-import os, markdown2, requests, qrcode, random, logging
+import os, markdown2, requests, qrcode, random, logging, sqlite3
 from tools import random_token, get_IP_Address, uuid_func, hash_func, prompt_get, check_old_markdown, res, get_bitcoin_cost, estimate_tokens
 from db_manage import DatabaseManager
 from replit import db
@@ -21,17 +21,33 @@ URL = "https://legend.lnbits.com/api/v1/payments/"
 HEADERS = {"X-Api-Key": API_KEY, "Content-Type": "application/json"}
 TOKEN_LIMIT = 3000
 
-#database = DatabaseManager("prime_database.db")
+app = Flask(__name__, static_url_path='/static')
+app.secret_key = os.environ['sessionKey']
+socketio = SocketIO(app)
+
+DATABASE = "prime_database.db"
 
 users = db.prefix("user")
 logging.debug(f"Number of Users: {len(users)}")
+
 """
 for user in users:
 """
 
-app = Flask(__name__, static_url_path='/static')
-app.secret_key = os.environ['sessionKey']
-socketio = SocketIO(app)
+def open_db():
+    if 'database' not in g:
+        g.database = sqlite3.connect(DATABASE)
+        g.database.row_factory = sqlite3.Row
+    return g.database
+
+@app.teardown_appcontext
+def close_db(error):
+    if 'database' in g:
+        g.database.close()
+
+@app.before_request
+def before_request():
+    g.d_base = DatabaseManager(open_db)
 
 
 @app.route("/", methods=["GET"])
@@ -71,18 +87,13 @@ def get_invoice():
     payment_request = invoice.get("payment_request")
     payment_hash = invoice.get("payment_hash")
     username = session.get("username")
-    # TODO: redo payment flow using new database
-    new_payment = {
-      "username": username,
-      "amount": sats,
-      "memo": memo,
-      "payment_request": payment_request,
-      "payment_hash": payment_hash,
-      "invoice_status": "not paid"
-    }
-    payment_dict = {payment_hash: {}}
-    payment_dict[payment_hash].update(new_payment)
-    db["payments"].update(payment_dict)
+    d_base = g.d_base
+    d_base.insert_payment(username=username,
+                          amount=sats,
+                          memo=memo,
+                          payment_request=payment_request,
+                          payment_hash=payment_hash,
+                          invoice_status='not paid')
     session["payment_request"] = payment_request
     session["payment_hash"] = payment_hash
     return {"status": "success", "payment_request": payment_request}
@@ -115,18 +126,29 @@ def payment_check(payment_hash):
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
+  d_base = g.d_base
   data = request.json
   payment_hash = data.get("payment_hash")
   paid = payment_check(payment_hash)
   if paid:
+    d_base.update_payment(payment_hash, "invoice_status", "paid")
     text = f"{payment_hash} has been paid!"
     logging.info(text)
-    # TODO: create database for payment
-    db["payments"][payment_hash]["invoice_status"] = "paid"
-    sats = int(db["payments"][payment_hash]["amount"])
-    username = db["payments"][payment_hash]["username"]
+    payment = d_base.get_payment(payment_hash)
+    sats = payment["amount"]
+    username = payment["username"]
+    current_user = d_base.get_user(username)
+    current_balance = current_user["sats"]
+    print(f"Current balance before sats: {current_balance}")
+    current_balance += sats
+    d_base.update_user(username, "sats", current_balance)
+    d_base.update_user(username, "recently_paid", True)
+    current_user = d_base.get_user(username)
+    print(f"Current balance after sats: {current_user['sats']}")
+    ##################################################
     db[username]["sats"] += sats
     db[username]["recently_paid"] = True
+    ##################################################
     clean_up_invoices()
   return "OK"
 
@@ -134,8 +156,8 @@ def webhook():
 @app.route('/payment_updates')
 def payment_updates():
   payment_hash = session["payment_hash"]
-  # TODO: pull information from new payment database
-  invoice_status = db['payments'][payment_hash].get("invoice_status")
+  d_base = g.d_base
+  invoice_status = d_base.get_invoice_status(payment_hash)
   if invoice_status == 'paid':
     data = 'data: {"status": "paid"}\n\n'
   else:
@@ -198,8 +220,11 @@ def login():
         session["identity_hash"] = identity_hash
         conversation = "conversation" + random_token()
         session["conversation"] = conversation
-        # TODO: database.insert_user(username, ip_address, uuid, user_agent, identity_hash)
+        d_base = g.d_base
+        d_base.insert_user(username, ip_address, uuid, user_agent, identity_hash)
         # TODO: Add Conversation to Database using Database manager class.
+        convo = d_base.insert_conversation(username, prompt, chosen_prompt)
+        print(f"New conversation: {convo}")
         db[username] = {
           "username": username,
           "ip_address": ip_address,
@@ -229,6 +254,7 @@ def login():
         conversation = "conversation" + random_token()
         session["conversation"] = conversation
         # TODO: figure out if we need to pull more information from database here
+        print("Hitting bottom of the login function")
         db[username]["conversations"][conversation] = {
           "prompt": prompt,
           "conversation_history": [{
@@ -249,7 +275,6 @@ def chat():
     return redirect("/")
   text = request.args.get("t")
   username = session["username"]
-  logging.info(f"Current Username is: {username}")
   conversation = session["conversation"]
   # TODO: pull the user from database
   # TODO: pull conversations from database using username, pull conversation history
