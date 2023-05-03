@@ -13,8 +13,7 @@ logging.basicConfig(filename='logfile.log', level=logging.error)
 ## TODO: Consider adding a way to login with the Lightning Network.
 ## LNURL-AUTH : https://github.com/lnurl/luds/blob/luds/04.md
 ## TODO: Add ability to change AI models.
-## TODO: Move away from Replit database and use sqllite.
-## TODO: Add payment database stuff.
+## TODO: Move away from Replit database and use sqllite. ALMOST DONE YOU FUCK!
 
 API_KEY = os.environ['lnbits_api']
 URL = "https://legend.lnbits.com/api/v1/payments/"
@@ -53,9 +52,10 @@ def before_request():
 @app.route("/", methods=["GET"])
 def index():
   text = request.args.get("t")
+  conv = {}
   if session.get("username") and session.get("identity_hash"):
     username = session["username"]
-    d_base = g.d_base
+    """d_base = g.d_base
     convo = d_base.get_conversations_for_user(username)
     conv = {}
     conv = {
@@ -65,8 +65,8 @@ def index():
       }
       for c in convo
     }
-      
-    #conv = db[username]["conversations"]
+    print(f"Printing conv in index route: {conv}")  """
+    conv = db[username]["conversations"]
   return render_template("index.html", text=text, conversations=conv)
 
 
@@ -199,6 +199,8 @@ def login():
     conversation = request.args.get('conversation')
     session["conversation"] = conversation
     # TODO: add conversation to database
+    """d_base = g.d_base
+    convo = d_base.get_conversation(conversation)"""
     prompt = db[username]["conversations"][conversation]["prompt"]
     if prompt != "CustomPrompt":
       prompt_dict = prompt_get(prompt)
@@ -231,11 +233,10 @@ def login():
         session["conversation"] = conversation
         d_base = g.d_base
         d_base.insert_user(username, ip_address, uuid, user_agent, identity_hash)
-        # TODO: Add Conversation to Database using Database manager class.
         convo = d_base.insert_conversation(username, prompt, chosen_prompt)
-        print(f"New conversation: {convo}")
+        logging.info(f"New conversation: {convo}")
         session["convo"] = convo["conversation_id"]
-        print(f"New conversation: {convo['conversation_id']}")
+        logging.info(f"New conversation: {convo['conversation_id']}")
         db[username] = {
           "username": username,
           "ip_address": ip_address,
