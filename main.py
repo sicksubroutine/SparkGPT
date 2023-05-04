@@ -86,7 +86,7 @@ def get_invoice():
     "amount": sats,
     "memo": memo,
     "expiry": 1500,
-    "webhook": "https://ChatGPT-Flask-App.thechaz.repl.co/webhook"
+    "webhook": "https://chatgpt-flask-app.thechaz.repl.co/webhook"
   }
   res = requests.post(URL, headers=HEADERS, json=data)
   if res.ok:
@@ -139,6 +139,7 @@ def webhook():
   data = request.json
   payment_hash = data.get("payment_hash")
   paid = payment_check(payment_hash)
+  print(f"Paid? {paid}")
   if paid:
     d_base.update_payment(payment_hash, "invoice_status", "paid")
     text = f"{payment_hash} has been paid!"
@@ -167,6 +168,7 @@ def payment_updates():
   payment_hash = session["payment_hash"]
   d_base = g.d_base
   invoice_status = d_base.get_invoice_status(payment_hash)
+  print(f"Invoice Status: {invoice_status}")
   if invoice_status == 'paid':
     data = 'data: {"status": "paid"}\n\n'
   else:
@@ -291,6 +293,8 @@ def chat():
   conversation = session["conversation"]
   # TODO: pull the user from database
   # TODO: pull conversations from database using username, pull conversation history
+  d_base = g.d_base
+  #convo = d_base.get_conversation(conversation)
   msg = db[username]["conversations"][conversation]["conversation_history"]
   if db.get(username, {}).get("conversations", {}).get(
       conversation, {}).get("summary") is None and len(msg) > 1:
@@ -348,13 +352,16 @@ def respond():
   username = session["username"]
   conversation = session["conversation"]
   # TODO: grab messages and conversation history from database
+  convo = session.get("convo")
+  d_base = g.d_base
+  db_msg = d_base.get_messages(convo)
+  print(db_msg)
   msg = db[username]["conversations"][conversation]["messages"]
   if db[username]["conversations"][conversation][
       "conversation_history"] is None:
     conversation_history = []
   else:
-    conversation_history = db[username]["conversations"][conversation][
-      "conversation_history"]
+    conversation_history = db[username]["conversations"][conversation]["conversation_history"]
   for observed_dict in msg.value:
     messages.append(observed_dict.value)
     if observed_dict in conversation_history:
@@ -443,7 +450,7 @@ def delete_convo():
     return redirect("/")
   username = session["username"]
   conversation = request.args["conversation"]
-  # TODO: more database updates here
+  ## NEED TO ADD DELETE CONVO DATABASE METHOD ##
   users = db.prefix("user")
   for user in users:
     if db[user]["username"] == username:
