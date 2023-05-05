@@ -113,12 +113,20 @@ document.getElementById("error").style.display = "none";}, 3000);
             <option value="PythonPrompt">Python AI</option>
             <option value="TherapistPrompt">Therapist AI</option>
           </select>
+          <br><br>
+          <label for="model">Choose a model:</label><br>
+          <select name="model" class="prompt">
+            <option value="gpt-3.5-turbo">GPT3.5</option>
+            <option value="gpt-4">GPT-4</option>
+          </select><br>
           <button type="submit" id="submit-btn" class="submit-btn">Submit</button>
       </form>
         </div>
+    <br>
         <div>
           <form action="/login" method="post">
           <textarea type="text" name="custom_prompt" id="text" class="prompt" placeholder="Custom Prompt Text..."></textarea>
+            <br>
           <button type="submit" class="submit-btn">Submit</button>
           </form>
         </div>

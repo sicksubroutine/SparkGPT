@@ -161,12 +161,14 @@ def login():
   identity_hash = hash_func(ip_address, uuid, user_agent)
   if request.method == 'POST':
     if 'prompt' in request.form:
-      prompt = request.form.get('prompt')
+      prompt = request.form.get("prompt")
+      model = request.form.get("model")
       prompt_dict = prompt_get(prompt)
       chosen_prompt = prompt_dict["prompt"]
       title = prompt_dict["title"]
       session["title"] = title
       session["prompt"] = prompt
+      session["model"] = model
     elif 'custom_prompt' in request.form:
       prompt = "CustomPrompt"
       chosen_prompt = request.form.get('custom_prompt')
@@ -423,18 +425,7 @@ def export_messages():
 
 @app.route("/logout")
 def logout():
-  session.pop("username", None)
-  session.pop("ip_address", None)
-  session.pop("title", None)
-  session.pop("prompt", None)
-  session.pop("uuid", None)
-  session.pop("identity_hash", None)
-  session.pop("convo", None)
-  session.pop("sats", None)
-  session.pop("token_usage", None)
-  #pop all session data
   session.clear()
-
   return redirect("/")
 
 

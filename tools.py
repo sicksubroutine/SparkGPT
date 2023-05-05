@@ -81,7 +81,7 @@ def check_old_markdown():
       os.remove(path + filename)
 
 
-def res(messages) -> str:
+def res(messages, model="gpt-3.5-turbo") -> str:
   retry = True
   retry_count = 0
   max_retries = 5
@@ -91,8 +91,7 @@ def res(messages) -> str:
   while retry:
     try:
       logging.info("Attempting to send message to assistant...")
-      response = openai.ChatCompletion.create(model="gpt-3.5-turbo",
-                                              messages=messages)
+      response = openai.ChatCompletion.create(model=model, messages=messages)
       assistant_response = response["choices"][0]["message"]["content"]
       token_usage = response["usage"]["total_tokens"]
       logging.info(response["usage"])
