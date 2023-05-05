@@ -135,12 +135,12 @@ def payment_check(payment_hash):
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
+  d_base = g.d_base
   data = request.json
   payment_hash = data.get("payment_hash")
   paid = payment_check(payment_hash)
   print(f"Paid? {paid}")
   if paid:
-    d_base = g.d_base
     d_base.update_payment(payment_hash, "invoice_status", "paid")
     text = f"{payment_hash} has been paid!"
     logging.info(text)
