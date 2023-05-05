@@ -142,7 +142,9 @@ class DatabaseManager:
     cursor.execute(
       "SELECT * FROM conversation_history WHERE conversation_id=?",
       (conversation_id, ))
-    return cursor.fetchall()
+    rows = cursor.fetchall()
+    columns = [col[0] for col in cursor.description]
+    return [dict(zip(columns, row)) for row in rows]
 
   def insert_message(self, conversation_id, role, content):
     cursor = self.conn.cursor()
@@ -156,7 +158,9 @@ class DatabaseManager:
     cursor = self.conn.cursor()
     cursor.execute("SELECT * FROM messages WHERE conversation_id=?",
                    (conversation_id, ))
-    return cursor.fetchall()
+    rows = cursor.fetchall()
+    columns = [col[0] for col in cursor.description]
+    return [dict(zip(columns, row)) for row in rows]
 
   def insert_payment(self, username, amount, memo, payment_request, payment_hash, invoice_status):
     self.conn.execute(
@@ -193,3 +197,4 @@ class DatabaseManager:
   def delete_payment(self, payment_hash):
     self.conn.execute("DELETE FROM payments WHERE payment_hash=?", (payment_hash,))
     self.conn.commit()
+
