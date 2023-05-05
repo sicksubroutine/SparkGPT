@@ -174,10 +174,10 @@ def login():
       session["title"] = title
       session["prompt"] = chosen_prompt
   elif 'conversation' in request.args:
-    convo = request.args.get('conversation')
-    session["convo"] = convo
+    convo_id = request.args.get('conversation')
+    session["convo"] = convo_id
     d_base = g.d_base
-    convo = d_base.get_conversation(convo)
+    convo = d_base.get_conversation(convo_id)
     prompt = convo["prompt"]
     if prompt != "CustomPrompt":
       prompt_dict = prompt_get(prompt)
@@ -283,9 +283,8 @@ def respond():
   messages = []
   for dict in msg:
     messages.append(dict)
-  conversation_history = d_base.get_conversation_history(convo)
-  if len(msg) != len(conversation_history):
-    print("Messages and Conversation History are not the same length!")
+  messages = [{k: v for k, v in d.items() if k in ['role', 'content']} for d in messages]
+  
   if request.method == 'POST':
     message = request.form.get("message")
     message_estimate = estimate_tokens(message)
@@ -301,8 +300,10 @@ def respond():
           f"{pre_cost} sats cost is more than {session['sats']} sats balance")
         session["force_buy"] = True
         return jsonify({"response": ""})
+    messages.append({"role": "user", "content": message})
     d_base.insert_message(convo, "user", message)
-    d_base.update_conversation_history(convo, "user", message)
+    d_base.insert_conversation_history(convo, "user", message)
+  logging.info(messages)
   response, token_usage = res(messages)
   session["token_usage"] = token_usage
   # sats code, getting cost in sats
@@ -318,7 +319,7 @@ def respond():
       oldest_assistant_message_id = oldest_assistant_message["id"]
       d_base.delete_message(convo, oldest_assistant_message_id)
   d_base.insert_message(convo, "assistant", response)
-  d_base.update_conversation_history(convo, "assistant", response)
+  d_base.insert_conversation_history(convo, "assistant", response)
   return jsonify({"response": response})
 
 

@@ -150,10 +150,8 @@ class DatabaseManager:
     cursor = self.conn.cursor()
     cursor.execute("SELECT * FROM conversations WHERE id=?",
                    (conversation_id, ))
-    rows = cursor.fetchall()
-    columns = [col[0] for col in cursor.description]
-    return [dict(zip(columns, row)) for row in rows]
-
+    return cursor.fetchone()
+    
   def get_conversations_for_user(self, username):
     cursor = self.conn.cursor()
     cursor.execute("SELECT * FROM conversations WHERE username=?",
