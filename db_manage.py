@@ -105,9 +105,23 @@ class DatabaseManager:
             "conversation_history_id": conversation_history_id,
             "message_id": message_id
         }
-
-
         return conversation_data
+  
+  def reset_conversation(self, conversation_id):
+    cursor = self.conn.cursor()
+    cursor.execute("SELECT * FROM messages WHERE conversation_id=? AND role=?", (conversation_id, 'system'))
+    system_message = cursor.fetchone()
+    self.conn.execute("DELETE FROM messages WHERE conversation_id=? AND id!=?", (conversation_id, system_message[0]))
+    self.conn.commit()
+    # do the same for the conversation_history
+    cursor.execute("SELECT * FROM conversation_history WHERE conversation_id=? AND role=?", (conversation_id, 'system'))
+    system_message = cursor.fetchone()
+    self.conn.execute("DELETE FROM conversation_history WHERE conversation_id=? AND id!=?", (conversation_id, system_message[0]))
+    self.conn.commit()
+
+  def delete_conversation(self, conversation_id):
+    self.conn.execute("DELETE FROM conversations WHERE id=?", (conversation_id, ))
+    self.conn.commit()
 
   def update_conversation_summaries(self, conversation_id, long_summary, short_summary):
     self.conn.execute('''
@@ -117,17 +131,36 @@ class DatabaseManager:
     ''', (long_summary, short_summary, conversation_id))
     self.conn.commit()
 
+  def get_conversation_summaries(self, conversation_id):
+    cursor = self.conn.cursor()
+    cursor.execute("SELECT summary, short_summary FROM conversations WHERE id=?",
+                   (conversation_id, ))
+    return cursor.fetchone()
+  
+  
+  def reset_conversation_summaries(self, conversation_id):
+    self.conn.execute('''
+        UPDATE conversations
+        SET summary = '', short_summary = ''
+        WHERE id = ?
+    ''', (conversation_id, ))
+    self.conn.commit()
+
   def get_conversation(self, conversation_id):
     cursor = self.conn.cursor()
     cursor.execute("SELECT * FROM conversations WHERE id=?",
                    (conversation_id, ))
-    return cursor.fetchone()
+    rows = cursor.fetchall()
+    columns = [col[0] for col in cursor.description]
+    return [dict(zip(columns, row)) for row in rows]
 
   def get_conversations_for_user(self, username):
     cursor = self.conn.cursor()
     cursor.execute("SELECT * FROM conversations WHERE username=?",
                    (username, ))
-    return cursor.fetchall()
+    rows = cursor.fetchall()
+    columns = [col[0] for col in cursor.description]
+    return [dict(zip(columns, row)) for row in rows]
 
   def insert_conversation_history(self, conversation_id, role, content):
     cursor = self.conn.cursor()
@@ -153,6 +186,11 @@ class DatabaseManager:
       (conversation_id, role, content))
     self.conn.commit()
     return cursor.lastrowid
+  
+  def delete_message(self, conversation_id, message_id):
+    cursor = self.conn.cursor()
+    cursor.execute("DELETE FROM messages WHERE conversation_id=? AND id=?", (conversation_id, message_id))
+    self.conn.commit()
 
   def get_messages(self, conversation_id):
     cursor = self.conn.cursor()
@@ -196,5 +234,9 @@ class DatabaseManager:
 
   def delete_payment(self, payment_hash):
     self.conn.execute("DELETE FROM payments WHERE payment_hash=?", (payment_hash,))
+    self.conn.commit()
+
+  def delete_all_payments(self):
+    self.conn.execute("DELETE FROM payments")
     self.conn.commit()
 

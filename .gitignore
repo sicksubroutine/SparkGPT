@@ -20,3 +20,6 @@ pyproject.toml
 .upm/
 replit.nix
 .config/
+
+# ignore all the vscode stuff
+.vscode/

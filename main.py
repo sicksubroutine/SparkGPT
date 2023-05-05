@@ -3,7 +3,6 @@ from flask_socketio import SocketIO
 import os, markdown2, requests, qrcode, random, logging, sqlite3
 from tools import random_token, get_IP_Address, uuid_func, hash_func, prompt_get, check_old_markdown, res, get_bitcoin_cost, estimate_tokens
 from db_manage import DatabaseManager
-from replit import db
 
 logging.basicConfig(filename='logfile.log', level=logging.error)
 
@@ -13,7 +12,6 @@ logging.basicConfig(filename='logfile.log', level=logging.error)
 ## TODO: Consider adding a way to login with the Lightning Network.
 ## LNURL-AUTH : https://github.com/lnurl/luds/blob/luds/04.md
 ## TODO: Add ability to change AI models.
-## TODO: Move away from Replit database and use sqllite. ALMOST DONE YOU FUCK!
 
 API_KEY = os.environ['lnbits_api']
 URL = "https://legend.lnbits.com/api/v1/payments/"
@@ -26,12 +24,6 @@ socketio = SocketIO(app)
 
 DATABASE = "prime_database.db"
 
-users = db.prefix("user")
-logging.info(f"Number of Users: {len(users)}")
-
-
-"""for user in users:
-  del db[user]"""
 
 def open_db():
     if 'database' not in g:
@@ -55,18 +47,8 @@ def index():
   conv = {}
   if session.get("username") and session.get("identity_hash"):
     username = session["username"]
-    """d_base = g.d_base
-    convo = d_base.get_conversations_for_user(username)
-    conv = {}
-    conv = {
-    c['id']: {
-      'prompt': c['prompt'],
-      'summary': c['summary']
-      }
-      for c in convo
-    }
-    print(f"Printing conv in index route: {conv}")  """
-    conv = db[username]["conversations"]
+    d_base = g.d_base
+    conv = d_base.get_conversations_for_user(username)
   return render_template("index.html", text=text, conversations=conv)
 
 
@@ -155,10 +137,6 @@ def webhook():
     d_base.update_user(username, "recently_paid", True)
     current_user = d_base.get_user(username)
     print(f"Current balance after sats: {current_user['sats']}")
-    ##################################################
-    db[username]["sats"] += sats
-    db[username]["recently_paid"] = True
-    ##################################################
     clean_up_invoices()
   return "OK"
 
@@ -168,7 +146,6 @@ def payment_updates():
   payment_hash = session["payment_hash"]
   d_base = g.d_base
   invoice_status = d_base.get_invoice_status(payment_hash)
-  print(f"Invoice Status: {invoice_status}")
   if invoice_status == 'paid':
     data = 'data: {"status": "paid"}\n\n'
   else:
@@ -198,12 +175,11 @@ def login():
       session["title"] = title
       session["prompt"] = chosen_prompt
   elif 'conversation' in request.args:
-    conversation = request.args.get('conversation')
-    session["conversation"] = conversation
-    # TODO: add conversation to database
-    """d_base = g.d_base
-    convo = d_base.get_conversation(conversation)"""
-    prompt = db[username]["conversations"][conversation]["prompt"]
+    convo = request.args.get('conversation')
+    session["convo"] = convo
+    d_base = g.d_base
+    convo = d_base.get_conversation(convo)
+    prompt = convo["prompt"]
     if prompt != "CustomPrompt":
       prompt_dict = prompt_get(prompt)
       title = prompt_dict["title"]
@@ -216,10 +192,11 @@ def login():
     return redirect("/")
   else:
     if not username or username == None:
-      users = db.prefix("user")
+      d_base = g.d_base
+      users = d_base.get_all_users()
       for user in users:
-        if identity_hash == db[user]["identity_hash"]:
-          session["username"] = db[user]["username"]
+        if identity_hash == user["identity_hash"]:
+          session["username"] = user["username"]
           session["ip_address"] = ip_address
           session["uuid"] = uuid
           session["identity_hash"] = identity_hash
@@ -231,56 +208,16 @@ def login():
         session["ip_address"] = ip_address
         session["uuid"] = uuid
         session["identity_hash"] = identity_hash
-        conversation = "conversation" + random_token()
-        session["conversation"] = conversation
         d_base = g.d_base
         d_base.insert_user(username, ip_address, uuid, user_agent, identity_hash)
         convo = d_base.insert_conversation(username, prompt, chosen_prompt)
-        logging.info(f"New conversation: {convo}")
         session["convo"] = convo["conversation_id"]
-        logging.info(f"New conversation: {convo['conversation_id']}")
-        db[username] = {
-          "username": username,
-          "ip_address": ip_address,
-          "uuid": uuid,
-          "user_agent": user_agent,
-          "identity_hash": identity_hash,
-          "sats": 0,
-          "recently_paid": False,
-          "conversations": {
-            conversation: {
-              "prompt":
-              prompt,
-              "conversation_history": [{
-                "role": "system",
-                "content": chosen_prompt
-              }],
-              "messages": [{
-                "role": "system",
-                "content": chosen_prompt
-              }]
-            }
-          }
-        }
         return redirect("/chat")
     else:
       if session.get("username") and session.get("identity_hash"):
-        conversation = "conversation" + random_token()
-        session["conversation"] = conversation
         d_base = g.d_base
         convo = d_base.insert_conversation(username, prompt, chosen_prompt)
         session["convo"] = convo["conversation_id"]
-        db[username]["conversations"][conversation] = {
-          "prompt": prompt,
-          "conversation_history": [{
-            "role": "system",
-            "content": chosen_prompt
-          }],
-          "messages": [{
-            "role": "system",
-            "content": chosen_prompt
-          }]
-        }
       return redirect("/chat")
 
 
@@ -290,53 +227,42 @@ def chat():
     return redirect("/")
   text = request.args.get("t")
   username = session["username"]
-  conversation = session["conversation"]
-  # TODO: pull the user from database
-  # TODO: pull conversations from database using username, pull conversation history
+  convo = session["convo"]
   d_base = g.d_base
-  #convo = d_base.get_conversation(conversation)
-  msg = db[username]["conversations"][conversation]["conversation_history"]
-  if db.get(username, {}).get("conversations", {}).get(
-      conversation, {}).get("summary") is None and len(msg) > 1:
+  convo = d_base.get_conversation(convo)
+  msg = d_base.get_messages(convo)
+  summary = d_base.get_conversation_summaries(convo)["summary"]
+  if len(summary) == 0 and len(msg) > 1:
     long_res, short_res = summary_of_messages()
-    # TODO: Add summeries to database
-    db[username]["conversations"][conversation]["summary"] = long_res
-    db[username]["conversations"][conversation]["short_summary"] = short_res
     convo = session.get("convo")
-    d_base = g.d_base
     d_base.update_conversation_summaries(convo, long_res, short_res)
   messages = []
-  for observed_dict in msg.value:
-    messages.append(observed_dict.value)
+  for dict in msg:
+      messages.append(dict)
   for message in messages:
     if message["role"] != "system":
-      message["content"] = markdown2.markdown(message["content"],
-                                              extras=["fenced-code-blocks"])
+      message["content"] = markdown2.markdown(message["content"], extras=["fenced-code-blocks"])
   # sats code
   sats = session.get("sats")
-  # TODO: grab sats from database
-  database_sats = db[username]["sats"]
-  # TODO: Recently Paid = Database pull
+  user = d_base.get_user(username)
+  database_sats = user["sats"]
+  recently_paid = user["recently_paid"]
   if sats == None:
-    db[username]["sats"] = 0
+    d_base.update_user(username, "sats", 0)
     session["sats"] = 0
     return render_template("pay.html", username=username)
-  elif db[username]["recently_paid"] and database_sats > sats:
+  elif recently_paid and database_sats > sats:
     session["sats"] = database_sats
-    # TODO: update database with recently paid value
-    db[username]["recently_paid"] = False
+    d_base.update_user(username, "recently_paid", False)
     sats = database_sats
   elif sats <= 0:
-    db[username]["sats"] = 0
+    d_base.update_user(username, "sats", 0)
     session["sats"] = 0
     return render_template("pay.html", username=username)
   if session.get("force_buy"):
-    # TODO: database stuff
-    db[username]["sats"] = sats
+    d_base.update_user(username, "sats", sats)
     session["force_buy"] = False
     return render_template("pay.html", username=username)
-  for index, message in enumerate(messages):
-    message["index"] = index
   return render_template("chat.html",
                          messages=messages,
                          title=session.get("title"),
@@ -350,24 +276,15 @@ def respond():
     return redirect("/")
   messages = []
   username = session["username"]
-  conversation = session["conversation"]
-  # TODO: grab messages and conversation history from database
   convo = session.get("convo")
   d_base = g.d_base
-  db_msg = d_base.get_messages(convo)
-  print(db_msg)
-  msg = db[username]["conversations"][conversation]["messages"]
-  if db[username]["conversations"][conversation][
-      "conversation_history"] is None:
-    conversation_history = []
-  else:
-    conversation_history = db[username]["conversations"][conversation]["conversation_history"]
-  for observed_dict in msg.value:
-    messages.append(observed_dict.value)
-    if observed_dict in conversation_history:
-      continue
-    else:
-      conversation_history.append(observed_dict)
+  msg = d_base.get_messages(convo)
+  messages = []
+  for dict in msg:
+      messages.append(dict)
+  conversation_history = d_base.get_conversation_history(convo)
+  if len(msg) != len(conversation_history):
+    print("Messages and Conversation History are not the same length!")
   if request.method == 'POST':
     message = request.form.get("message")
     message_estimate = estimate_tokens(message)
@@ -379,38 +296,27 @@ def respond():
       pre_cost = get_bitcoin_cost(total_tokens)
       if pre_cost > session["sats"]:
         # check to see if cost is likely to exceed balance.
-        logging.info(
-          f"{pre_cost} sats cost is more than {session['sats']} sats balance")
+        logging.info(f"{pre_cost} sats cost is more than {session['sats']} sats balance")
         session["force_buy"] = True
         return jsonify({"response": ""})
-    messages.append({"role": "user", "content": message})
-    if not message in conversation_history:
-      conversation_history.append({"role": "user", "content": message})
+    d_base.insert_message(convo, "user", message)
+    d_base.update_conversation_history(convo, "user", message)
   response, token_usage = res(messages)
   session["token_usage"] = token_usage
   # sats code, getting cost in sats
   cost = get_bitcoin_cost(token_usage)
   sats = session.get("sats") - cost
   session["sats"] = sats
-  # TODO: update database with new sats value
-  db[username]["sats"] = sats
+  d_base.update_user(username, "sats", sats)
   if token_usage > TOKEN_LIMIT:
     oldest_assistant_message = next(
       (msg for msg in messages if msg["role"] == "assistant"), None)
     logging.info("Token limit reached. Removing oldest assistant message!")
     if oldest_assistant_message:
-      messages.remove(oldest_assistant_message)
-  messages.append({"role": "assistant", "content": response})
-  if not response in conversation_history:
-    conversation_history.append({"role": "assistant", "content": response})
-  # TODO: convert database stuff here too
-  users = db.prefix("user")
-  for user in users:
-    if db[user]["username"] == session["username"]:
-      db[user]["conversations"][conversation][
-        "conversation_history"] = conversation_history
-      db[user]["conversations"][conversation]["messages"] = messages
-      break
+      oldest_assistant_message_id = oldest_assistant_message["id"]
+      d_base.delete_message(convo, oldest_assistant_message_id)
+  d_base.insert_message(convo, "assistant", response)
+  d_base.update_conversation_history(convo, "assistant", response)
   return jsonify({"response": response})
 
 
@@ -419,28 +325,15 @@ def reset_messages():
   if not session.get("username"):
     return redirect("/")
   username = session["username"]
-  text = "Chat Reset!"
-  prompt = session.get("prompt")
-  conversation = session["conversation"]
-  # TODO: More Database updates here
-  db[username]["conversations"][conversation]["messages"] = [{
-    "role":
-    "system",
-    "content":
-    f"{prompt}"
-  }]
-  db[username]["conversations"][conversation]["conversation_history"] = [{
-    "role":
-    "system",
-    "content":
-    f"{prompt}"
-  }]
-  db[username]["conversations"][conversation].pop("summary")
-  db[username]["conversations"][conversation].pop("short_summary")
+  convo = session.get("convo")
+  d_base = g.d_base
+  d_base.reset_conversation(convo)
+  d_base.reset_conversation_summaries(convo)
   logging.info("summary removed")
   session.pop("prompt", None)
   session.pop("title", None)
-  session.pop("conversation", None)
+  session.pop("convo", None)
+  text = "Chat Reset!"
   return redirect(f"/?t={text}")
 
 
@@ -448,15 +341,10 @@ def reset_messages():
 def delete_convo():
   if not session.get("username"):
     return redirect("/")
-  username = session["username"]
-  conversation = request.args["conversation"]
-  ## NEED TO ADD DELETE CONVO DATABASE METHOD ##
-  users = db.prefix("user")
-  for user in users:
-    if db[user]["username"] == username:
-      del db[username]["conversations"][conversation]
-      session.pop("conversation", None)
-      break
+  #username = session["username"]
+  convo = request.args["conversation"]
+  d_base = g.d_base
+  d_base.delete_conversation(convo)
   return redirect("/")
 
 
@@ -465,31 +353,20 @@ def delete_msg():
   if not session.get("username"):
     return redirect("/")
   username = session["username"]
-  conversation = session["conversation"]
-  msg_index = int(request.args["msg"])
-  # TODO: Figure out how to do delete messages via database update
-  length_msg = len(db[username]["conversations"][conversation]["messages"])
-  length_con_hist = len(
-    db[username]["conversations"][conversation]["conversation_history"])
-  difference = length_con_hist - length_msg
-  try:
-    del db[username]["conversations"][conversation]["conversation_history"][
-      msg_index]
-    del db[username]["conversations"][conversation]["messages"][msg_index -
-                                                                difference]
-    return redirect("/chat")
-  except Exception as e:
-    logging.error(e)
-    return redirect("/chat")
+  convo = session["convo"]
+  msg_id = int(request.args["msg"])
+  d_base = g.d_base
+  d_base.delete_message(convo, msg_id)
+  return redirect("/chat")
 
 
 def summary_of_messages():
   if not session.get("username"):
     return redirect("/")
   username = session["username"]
-  conversation = session["conversation"]
-  # TODO: Doing Message Summary Work via Database pull
-  messages = db[username]["conversations"][conversation]["messages"]
+  convo = session["convo"]
+  d_base = g.d_base
+  messages = d_base.get_messages(convo)
   summary_msgs = ""
   for index, message in enumerate(messages):
     if message["role"] == "user":
@@ -498,7 +375,7 @@ def summary_of_messages():
       summary_msgs += message["content"]
     elif message["role"] == "assistant":
       pass
-  prompt = "The user's question or request should be summerized into seven words or less. No explanation or elaboration. Response needs to be seven words or less, no puncutation."
+  prompt = "The user's question or request should be summarized into seven words or less. No explanation or elaboration. Response needs to be seven words or less, no punctuation."
   arr = [{
     "role": "system",
     "content": f"{prompt}"
@@ -521,11 +398,10 @@ def export_messages():
     return redirect("/")
   check_old_markdown()
   username = session["username"]
-  conversation = session["conversation"]
-  # TODO: Pull conversation history and messages from database
-  messages = db[username]["conversations"][conversation][
-    "conversation_history"]
-  summary = db[username]["conversations"][conversation]["short_summary"]
+  convo = session["convo"]
+  d_base = g.d_base
+  messages = d_base.get_conversation_history(convo)
+  summary = d_base.get_conversation_summaries(convo)["short_summary"]
   markdown = ""
   for message in messages:
     if message['role'] == 'system':
@@ -550,7 +426,7 @@ def logout():
   session.pop("prompt", None)
   session.pop("uuid", None)
   session.pop("identity_hash", None)
-  session.pop("conversation", None)
+  session.pop("convo", None)
   session.pop("sats", None)
   session.pop("token_usage", None)
   return redirect("/")

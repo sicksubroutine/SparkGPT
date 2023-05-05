@@ -6,15 +6,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
   <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
-  <script>
   {% if text %}
+  <script>
   setTimeout(function() {
 const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
 window.history.replaceState({ path: newUrl }, '', newUrl);
 document.getElementById("black-box").style.display = "none";      
 document.getElementById("error").style.display = "none";}, 3000);
-    {% endif %}
   </script>
+  {% endif %}
   <style>
     body {
       background-color: black;
@@ -134,10 +134,10 @@ document.getElementById("error").style.display = "none";}, 3000);
   <br>
   <div class="mess">
     {% if conversations %}
-      {% for conv_name, conv in conversations.items() %}
-          <span><a href="/login?conversation={{ conv_name }}" class="submit-link">{{ conv['prompt'] }}</span></a> <a href="/delete_convo?conversation={{conv_name}}"><i class="fa fa-trash"></i></a>
+      {% for conversation in conversations %}
+          <span><a href="/login?conversation={{ conversation.id }}" class="submit-link">{{ conversation.prompt }}</span></a> <a href="/delete_convo?conversation={{conversation.id}}"><i class="fa fa-trash"></i></a>
           <div class="summary">
-              {{ conv['summary'] }}
+              {{ conversation.summary }}
           </div>
       {% endfor %}
     {% endif %}

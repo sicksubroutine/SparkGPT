@@ -6,15 +6,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="static/script.js"></script>
   <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+  {% if text %}
   <script>
-    {% if text %}
     setTimeout(function() {
   const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
 window.history.replaceState({ path: newUrl }, '', newUrl);
   document.getElementById("error").style.display = "none";
 }, 3000);
-    {% endif %}
   </script>
+  {% endif %}
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
   <link rel="stylesheet" href="/static/style.css">
   <style>
@@ -54,7 +54,7 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
               </pre>
               </div>
             <div class="message-actions-assistant">
-    <a href="/delete_msg?msg={{ message.index }}" class="ass-btn"><i class="fas fa-trash"></i></a>
+    <a href="/delete_msg?msg={{ message.id }}" class="ass-btn"><i class="fas fa-trash"></i></a>
             </div>
          
         {% else %}
@@ -63,7 +63,7 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
               {{ message.content|safe }}
             </div>
             <div class="message-actions-assistant">
-    <a href="/delete_msg?msg={{ message.index }}" class="ass-btn"><i class="fas fa-trash"></i></a>
+    <a href="/delete_msg?msg={{ message.id }}" class="ass-btn"><i class="fas fa-trash"></i></a>
             </div>
           
         {% endif %}
@@ -73,7 +73,7 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
             {{ message.content|safe }}
           </div>
           <div class="message-actions-user">
-    <a href="/delete_msg?msg={{ message.index }}" class="usr-btn"><i class="fas fa-trash"></i></a>
+    <a href="/delete_msg?msg={{ message.id }}" class="usr-btn"><i class="fas fa-trash"></i></a>
             
           </div>
           
