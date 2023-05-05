@@ -26,19 +26,21 @@ DATABASE = "prime_database.db"
 
 
 def open_db():
-    if 'database' not in g:
-        g.database = sqlite3.connect(DATABASE)
-        g.database.row_factory = sqlite3.Row
-    return g.database
+  if 'database' not in g:
+    g.database = sqlite3.connect(DATABASE)
+    g.database.row_factory = sqlite3.Row
+  return g.database
+
 
 @app.teardown_appcontext
 def close_db(error):
-    if 'database' in g:
-        g.database.close()
+  if 'database' in g:
+    g.database.close()
+
 
 @app.before_request
 def before_request():
-    g.d_base = DatabaseManager(open_db)
+  g.d_base = DatabaseManager(open_db)
 
 
 @app.route("/", methods=["GET"])
@@ -120,7 +122,6 @@ def webhook():
   data = request.json
   payment_hash = data.get("payment_hash")
   paid = payment_check(payment_hash)
-  print(f"Paid? {paid}")
   if paid:
     d_base = g.d_base
     d_base.update_payment(payment_hash, "invoice_status", "paid")
@@ -131,12 +132,10 @@ def webhook():
     username = payment["username"]
     current_user = d_base.get_user(username)
     current_balance = current_user["sats"]
-    print(f"Current balance before sats: {current_balance}")
     current_balance += sats
     d_base.update_user(username, "sats", current_balance)
     d_base.update_user(username, "recently_paid", True)
     current_user = d_base.get_user(username)
-    print(f"Current balance after sats: {current_user['sats']}")
     clean_up_invoices()
   return "OK"
 
@@ -209,9 +208,11 @@ def login():
         session["uuid"] = uuid
         session["identity_hash"] = identity_hash
         d_base = g.d_base
-        d_base.insert_user(username, ip_address, uuid, user_agent, identity_hash)
+        d_base.insert_user(username, ip_address, uuid, user_agent,
+                           identity_hash)
         convo = d_base.insert_conversation(username, prompt, chosen_prompt)
         session["convo"] = convo["conversation_id"]
+        print(f"Conversation ID: {convo['conversation_id']}")
         return redirect("/chat")
     else:
       if session.get("username") and session.get("identity_hash"):
@@ -229,7 +230,6 @@ def chat():
   username = session["username"]
   convo = session["convo"]
   d_base = g.d_base
-  convo = d_base.get_conversation(convo)
   msg = d_base.get_messages(convo)
   summary = d_base.get_conversation_summaries(convo)["summary"]
   if len(summary) == 0 and len(msg) > 1:
@@ -238,10 +238,11 @@ def chat():
     d_base.update_conversation_summaries(convo, long_res, short_res)
   messages = []
   for dict in msg:
-      messages.append(dict)
+    messages.append(dict)
   for message in messages:
     if message["role"] != "system":
-      message["content"] = markdown2.markdown(message["content"], extras=["fenced-code-blocks"])
+      message["content"] = markdown2.markdown(message["content"],
+                                              extras=["fenced-code-blocks"])
   # sats code
   sats = session.get("sats")
   user = d_base.get_user(username)
@@ -281,7 +282,7 @@ def respond():
   msg = d_base.get_messages(convo)
   messages = []
   for dict in msg:
-      messages.append(dict)
+    messages.append(dict)
   conversation_history = d_base.get_conversation_history(convo)
   if len(msg) != len(conversation_history):
     print("Messages and Conversation History are not the same length!")
@@ -296,7 +297,8 @@ def respond():
       pre_cost = get_bitcoin_cost(total_tokens)
       if pre_cost > session["sats"]:
         # check to see if cost is likely to exceed balance.
-        logging.info(f"{pre_cost} sats cost is more than {session['sats']} sats balance")
+        logging.info(
+          f"{pre_cost} sats cost is more than {session['sats']} sats balance")
         session["force_buy"] = True
         return jsonify({"response": ""})
     d_base.insert_message(convo, "user", message)
@@ -324,7 +326,7 @@ def respond():
 def reset_messages():
   if not session.get("username"):
     return redirect("/")
-  username = session["username"]
+  #username = session["username"]
   convo = session.get("convo")
   d_base = g.d_base
   d_base.reset_conversation(convo)
@@ -352,7 +354,7 @@ def delete_convo():
 def delete_msg():
   if not session.get("username"):
     return redirect("/")
-  username = session["username"]
+  #username = session["username"]
   convo = session["convo"]
   msg_id = int(request.args["msg"])
   d_base = g.d_base
@@ -363,7 +365,7 @@ def delete_msg():
 def summary_of_messages():
   if not session.get("username"):
     return redirect("/")
-  username = session["username"]
+  #username = session["username"]
   convo = session["convo"]
   d_base = g.d_base
   messages = d_base.get_messages(convo)
@@ -429,6 +431,9 @@ def logout():
   session.pop("convo", None)
   session.pop("sats", None)
   session.pop("token_usage", None)
+  #pop all session data
+  session.clear()
+
   return redirect("/")
 
 
