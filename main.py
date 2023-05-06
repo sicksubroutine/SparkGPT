@@ -8,10 +8,10 @@ logging.basicConfig(filename='logfile.log', level=logging.error)
 
 ## TODO: Add more prompts.
 ## TODO: Make the front page look better.
-## TODO: Make the chat app look better across different interfaces.
+## TODO: Make the chat app look better across different interfaces. Responsive.
 ## TODO: Consider adding a way to login with the Lightning Network.
 ## LNURL-AUTH : https://github.com/lnurl/luds/blob/luds/04.md
-## TODO: Add ability to change AI models.
+## TODO: Add ability to change AI models, partially complete.
 
 API_KEY = os.environ['lnbits_api']
 URL = "https://legend.lnbits.com/api/v1/payments/"
@@ -296,17 +296,18 @@ def respond():
       total_tokens = previous_token_usage + message_estimate
       logging.debug(f"Token Estimation: {message_estimate}")
       pre_cost = get_bitcoin_cost(total_tokens)
-      if pre_cost > session["sats"]:
+      sats = d_base.get_user(username)["sats"]
+      if pre_cost > sats:
         # check to see if cost is likely to exceed balance.
         logging.info(
-          f"{pre_cost} sats cost is more than {session['sats']} sats balance")
+          f"{pre_cost} sats cost is more than {sats} sats balance")
         session["force_buy"] = True
         return jsonify({"response": ""})
     messages.append({"role": "user", "content": message})
     d_base.insert_message(convo, "user", message)
     d_base.insert_conversation_history(convo, "user", message)
-  logging.info(messages)
-  response, token_usage = res(messages)
+  model = session.get("model")
+  response, token_usage = res(messages, model)
   session["token_usage"] = token_usage
   # sats code, getting cost in sats
   cost = get_bitcoin_cost(token_usage)
@@ -329,7 +330,6 @@ def respond():
 def reset_messages():
   if not session.get("username"):
     return redirect("/")
-  #username = session["username"]
   convo = session.get("convo")
   d_base = g.d_base
   d_base.reset_conversation(convo)
@@ -346,7 +346,6 @@ def reset_messages():
 def delete_convo():
   if not session.get("username"):
     return redirect("/")
-  #username = session["username"]
   convo = request.args["conversation"]
   d_base = g.d_base
   d_base.delete_conversation(convo)
@@ -357,7 +356,6 @@ def delete_convo():
 def delete_msg():
   if not session.get("username"):
     return redirect("/")
-  #username = session["username"]
   convo = session["convo"]
   msg_id = int(request.args["msg"])
   d_base = g.d_base
@@ -368,7 +366,6 @@ def delete_msg():
 def summary_of_messages():
   if not session.get("username"):
     return redirect("/")
-  #username = session["username"]
   convo = session["convo"]
   d_base = g.d_base
   messages = d_base.get_messages(convo)
@@ -402,7 +399,6 @@ def export_messages():
   if not session.get("username"):
     return redirect("/")
   check_old_markdown()
-  username = session["username"]
   convo = session["convo"]
   d_base = g.d_base
   messages = d_base.get_conversation_history(convo)
@@ -431,3 +427,4 @@ def logout():
 
 if __name__ == "__main__":
   socketio.run(app, debug=False, host='0.0.0.0', port=81)
+
