@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "tailwindcss": "^3.1.8"
+  },
+
+  "scripts": {
+    "create-css": "npx tailwindcss -i ./static/src/input.css -o ./static/css/main.css",
+    "run-python": "python3 ./main.py"
+  }
+}

@@ -16,7 +16,9 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
   </script>
   {% endif %}
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
-  <link rel="stylesheet" href="/static/style.css">
+  <link href="{{url_for('static',filename='css/main.css')}}" rel="stylesheet">
+
+  <!--<link rel="stylesheet" href="/static/style.css">-->
   <style>
   
 
@@ -25,6 +27,40 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
 </head>
 <body>
   
+
+  <div class="flex flex-col h-screen">
+    <header class="p-4 bg-blue-500 text-white">
+      <h1><a href="/">{{ title }}</a></h1>
+      <a class="ml-4 text-white hover:text-blue-200" href="/export">&#x2601;</a>
+    </header>
+    
+    <main class="flex-grow overflow-y-scroll bg-gray-200 p-4 space-y-4">
+      {% for message in messages %}
+        {% if message.role != 'system' %}
+          <div class="flex flex-col {% if message.role == 'assistant' %}items-start{% else %}items-end{% endif %}">
+            <div class="max-w-sm mx-2 py-2 px-4 rounded-lg {% if message.role == 'assistant' %}bg-blue-500 text-white{% else %}bg-gray-500 text-white{% endif %}">
+              {{ message.content|replace('<pre>', '<pre class="code">')|safe }}
+            </div>
+            <a href="/delete_msg?msg={{ message.id }}" class="text-sm text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></a>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </main>
+  
+    <footer class="p-4 bg-white border-t border-gray-200">
+      <form action="/respond" method="post" onsubmit="sendMessage(event)" class="flex items-center">
+        {% if token_left %}
+          <span class="mr-4">Sats Remaining: {{ token_left }}</span>
+        {% endif %}
+        <a href="/reset" class="text-blue-500 hover:text-blue-800 mr-4"><i class="fa fa-undo" aria-hidden="true"></i></a>
+        <textarea class="flex-grow mr-4 p-2 border border-gray-200 rounded" name="message" placeholder="Enter a message here..." required></textarea>
+        <button type="submit" id="submit-btn" class="py-2 px-4 rounded bg-blue-500 text-white hover:bg-blue-700"><i class="fa fa-paper-plane"></i></button>
+      </form>
+    </footer>
+  </div>
+  
+
+  <!--
   <center>
     <div class="form-wrapper">
       <form action="/respond" method="post" onsubmit="sendMessage(event)">
@@ -86,6 +122,6 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
   {% endif %}
           <div></div>
 </div>
-
+-->
 </body>
 </html>
