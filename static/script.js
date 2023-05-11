@@ -20,12 +20,12 @@ function sendMessage(event) {
   
   const userMessage = document.createElement('div');
   userMessage.textContent = message;
-  userMessage.classList.add('user-message', 'new-message');
+  userMessage.classList.add('user-message', 'new-message', 'max-w-sm', 'ml-auto', 'py-2', 'px-4', 'rounded-lg', 'bg-green-700', 'text-white');
   messageBox.appendChild(userMessage);
   
   const assistantMessage = document.createElement('div');
   assistantMessage.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
-  assistantMessage.classList.add('assistant-message', 'new-message');
+  assistantMessage.classList.add('assistant-message', 'new-message', 'max-w-sm', 'mx-2', 'py-2', 'px-4', 'rounded-lg', 'bg-blue-700', 'text-white');
   messageBox.appendChild(assistantMessage);
   
   const formData = new FormData();
@@ -45,4 +45,5 @@ function sendMessage(event) {
   document.querySelector('textarea[name="message"]').value = '';
   messageBox.scrollTop = messageBox.scrollHeight;
 }
+
 

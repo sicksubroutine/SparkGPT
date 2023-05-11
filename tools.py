@@ -2,10 +2,11 @@ import string, random, uuid, hashlib, os, openai, time, requests, logging
 
 logging.basicConfig(filename='logfile.log', level=logging.INFO)
 
-secretKey = os.environ['GPT-API']
+secretKey = os.environ['gpt-API']
 openai.api_key = f"{secretKey}"
 
 SATS = 0.00000001
+
 
 def random_token() -> str:
   ran_token = ''.join(
@@ -141,11 +142,12 @@ def estimate_tokens(text, method="max"):
     return "Invalid method. Use 'average', 'words', 'chars', 'max', or 'min'."
   return int(output) + 5
 
+
 def get_bitcoin_cost(tokens, model="gpt-3.5-turbo"):
   if model == "gpt-3.5-turbo":
-    cost = 0.0099 # chatgpt per 1k tokens
+    cost = 0.0099  # chatgpt per 1k tokens
   elif model == "gpt-4":
-    cost = 0.10 # gpt4 per 1k tokens
+    cost = 0.10  # gpt4 per 1k tokens
   url = "https://api.kraken.com/0/public/Ticker?pair=xbtusd"
   r = requests.get(url)
   data = r.json()["result"]["XXBTZUSD"]["c"]
