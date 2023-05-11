@@ -6,7 +6,6 @@ secretKey = os.environ['GPT_API']
 openai.api_key = f"{secretKey}"
 
 SATS = 0.00000001
-DOLLAR_PER_1K_TOKENS = 0.0099 # cost of a token
 
 def random_token() -> str:
   ran_token = ''.join(
@@ -81,7 +80,7 @@ def check_old_markdown():
       os.remove(path + filename)
 
 
-def res(messages) -> str:
+def res(messages, model="gpt-3.5-turbo") -> str:
   retry = True
   retry_count = 0
   max_retries = 5
@@ -91,8 +90,7 @@ def res(messages) -> str:
   while retry:
     try:
       logging.info("Attempting to send message to assistant...")
-      response = openai.ChatCompletion.create(model="gpt-3.5-turbo",
-                                              messages=messages)
+      response = openai.ChatCompletion.create(model=model, messages=messages)
       assistant_response = response["choices"][0]["message"]["content"]
       token_usage = response["usage"]["total_tokens"]
       logging.info(response["usage"])
@@ -143,9 +141,12 @@ def estimate_tokens(text, method="max"):
     return "Invalid method. Use 'average', 'words', 'chars', 'max', or 'min'."
   return int(output) + 5
 
-def get_bitcoin_cost(tokens):
+def get_bitcoin_cost(tokens, model="gpt-3.5-turbo"):
+  if model == "gpt-3.5-turbo":
+    cost = 0.0099 # chatgpt per 1k tokens
+  elif model == "gpt-4":
+    cost = 0.10 # gpt4 per 1k tokens
   url = "https://api.kraken.com/0/public/Ticker?pair=xbtusd"
   r = requests.get(url)
   data = r.json()["result"]["XXBTZUSD"]["c"]
-  return round(
-    ((tokens / 1000) * DOLLAR_PER_1K_TOKENS / round(float(data[0]))) / SATS)
+  return round(((tokens / 1000) * cost / round(float(data[0]))) / SATS)
