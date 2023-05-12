@@ -6,77 +6,32 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
-
-  <style>
-    body {
-      background-color: black;
-      color: white;
-    }
-    .container {
-      top: 50%;
-      padding: 0;
-      margin: 0;
-      width: 100%;
-      height: 100%;
-      text-align: center;
-    }
-    #sats {
-      border-radius: 5px;
-      color: white;
-      background: linear-gradient(90deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0.75) 50%);
-      box-shadow: 0px 0px 4px 2px rgba(255,0,0,0.2);
-      padding: 5px;
-      font-family: Arial, sans-serif; 
-      font-size: 14px;
-    }
-    .centerme {
-      text-align: center;
-    }
-    #checkmark {
-      transition: transform 0.2s ease-in-out;
-    }
-    #generate-button {
-      color: white;
-      border-radius: 10px;
-      font-weight: bold;
-      box-shadow: 0px 0px 4px 2px rgba(0,0,0,0.2);
-      transition: all 0.3s ease-in-out;
-      background: linear-gradient(90deg, rgba(255,0,0,1) 0%, rgba(0,0,255,1) 60%);
-      font-family: Arial, sans-serif; font-size: 14px;
-      display: inline-block;
-      margin-right: 10px;
-      padding: 10px 32px;
-      margin: 2px auto;
-    }
-    #generate-button:hover {
-      border-radius: 10px;
-      font-weight: bold;
-      box-shadow: 0px 0px 4px 2px rgba(0,0,0,0.2);
-      transition: all 0.3s ease-in-out;
-      background: linear-gradient(90deg, rgba(0,0,255,0.5) 0%, rgba(255,0,0,0.25) 60%);
-      font-family: Arial, sans-serif; font-size: 14px;
-      display: inline-block;
-      margin-right: 10px; 
-      padding: 5px 32px;
-      margin: 2px auto;
-    }
-  </style>
+  <link href="{{url_for('static',filename='css/main.css')}}" rel="stylesheet">
   <title>Pay for ChatGPT with Bitcoin</title>
 </head>
-<body>
-  <h1 class="centerme">Not enough Sats to Chat!</h1>
-  <h3 class="centerme">Top up now!</h3>
-  <center><form id="invoice-form">
-        <label for="<of></of>ts">Sats:</label>
-        <input type="text" id="sats" name="sats" pattern="[0-9]*" inputmode="numeric" title="Please enter a valid number!" required>
-        <button type="submit" id="generate-button">Generate Invoice</button>
-    </form></center><br><br>
-  <center>
-    <div id="checkmark"></div>
-    <div id="num_of_sats"></div><br>
-    <div id="qr-code"></div><br><br>
-  <div id="payment-message"></div></center>
-</body>
+<body class="bg-black text-white flex flex-col items-center justify-center min-h-screen">
+  
+  <header class="p-4 bg-black w-full flex justify-between items-center">
+    
+    <button></button>
+    <h1 id="not" class="text-lg md:text-xl text-center">Not enough Sats to Chat!</h1>
+    <div id="num_of_sats" class="mt-4 text-lg text-white hidden relative -top-64"></div>
+    <div></div> <!-- Spacer -->
+  </header>
+  <h3 id="topup" class="mt-4 text-lg text-red-500">Top up now!</h3>
+  <form id="invoice-form" class="flex flex-col items-center mt-4">
+    <input type="text" id="sats" name="sats" pattern="[0-9]*" placeholder="Enter an Amount of Sats..." inputmode="numeric" title="Please enter a valid number!" required class="appearance-none rounded-none relative block w-64 px-3 py-2 border border-gray-300 placeholder-gray-500 text-white rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm bg-gray-800 mt-2">
+    <button type="submit" id="generate-button" class="group relative w-64 flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 mt-4">Generate Invoice</button>
+    <div id="spinner" class="hidden">
+      <i class="text-lg fas fa-spinner fa-spin"></i>
+    </div>
+  </form>
+  <div id="checkmark" class="mt-4"></div>
+  
+  <div id="payment-message" class="mt-4 text-lg text-red-500"></div>
+  <div id="qr-code" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white hidden"></div>
+  <div></div>
+  
   <script>
     const invoiceForm = document.querySelector("#invoice-form");
     const generateButton = document.querySelector("#generate-button");
@@ -84,14 +39,20 @@
     const satsInput = document.querySelector("#sats");
     const numOfSats = document.querySelector("#num_of_sats");
     const link = document.createElement("a");
+    const topup = document.querySelector("#topup");
+    const not = document.querySelector("#not");
+    let satNum = 0;
 
 invoiceForm.addEventListener("submit", (event) => {
     event.preventDefault(); 
     const sats = satsInput.value;
 
+    document.getElementById('spinner').classList.remove('hidden');
+
     fetch(`/get_invoice?sats=${sats}`)
         .then(response => {
             if (response.ok) {
+              satNum = sats;
               satsInput.value = "";
               qrCodeDiv.innerHTML = "";
               return response.json();
@@ -106,12 +67,19 @@ invoiceForm.addEventListener("submit", (event) => {
             fetch(`/qrcode_gen?payment_request=${encodeURIComponent(data.payment_request)}`)
                 .then(response => response.text())
                 .then(qrCodeImagePath => {
-                    image.src = qrCodeImagePath;
                     image.width = 500;
+                    topup.classList.add("hidden");
+                    not.classList.add("hidden");
+                    invoiceForm.classList.add("hidden");
+                    generateButton.classList.add("hidden");
+                    image.src = qrCodeImagePath;
+                    numOfSats.classList.remove("hidden");
                     numOfSats.innerHTML = "Invoice for " + sats + " Sats";
+                    
                     link.href = "lightning:" + data.payment_request;
                     link.appendChild(image);
                     qrCodeDiv.appendChild(link);
+                    qrCodeDiv.classList.remove("hidden");
                     startPolling();
                 })
                 .catch(error => console.error(error));
@@ -120,7 +88,7 @@ invoiceForm.addEventListener("submit", (event) => {
 });
 
 generateButton.addEventListener("click", () => {
-    qrCodeDiv.innerHTML = "";  // clear previous QR codes
+    qrCodeDiv.innerHTML = "";
 });
          function handlePaymentSuccess() {
             $('#payment-popup').html('Payment successful!');
@@ -138,16 +106,18 @@ generateButton.addEventListener("click", () => {
                 if (data.status === 'not paid') {
                     messageDiv.textContent = "";
                 } else {
-                  messageDiv.textContent = "Invoice has been paid!";
+                  setTimeout(() => handlePaymentSuccess(), 1000); 
+                  messageDiv.textContent = "Invoice for " + satNum + " sats has been paid!";
+                  qrCodeDiv.classList.add("hidden");
+                  numOfSats.classList.add("hidden");
                   const icon = document.createElement("i");
                   icon.classList.add("fas", "fa-check-circle");
-                  icon.style.fontSize = "5em";
+                  icon.style.fontSize = "10em";
                   icon.style.color = "green";
                   target.appendChild(icon);
                   qrCodeDiv.innerHTML = "";
-                  setTimeout(() => handlePaymentSuccess(), 4000);  
                   source.close();
-                  window.location.href = "/chat";
+                  setTimeout(() => window.location.href = "/chat", 3000);
                 }
             });
         }

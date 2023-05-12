@@ -24,10 +24,14 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
 <body class="bg-black text-white">
   <div style="height:92vh;" class="flex justify-center text-white">
     <div class="flex flex-col w-full max-w-2xl lg:h-screen">
-      <div id="sidebar" class="hidden fixed top-0 left-0 h-full w-64 bg-gray-900 p-4 overflow-auto transform -translate-x-full transition-transform duration-200 ease-in-out z-10">
-        <nav id="nav-links" class="space-y-2">
-          <a href="/reset" class="block text-red-500 hover:text-blue-300 ml-4"><i class="fa fa-undo" aria-hidden="true"></i> Reset Chat</a>
-          <a class="block text-red-500 hover:text-blue-300 ml-4" href="/export"><i class="fa fa-download"></i> Export</a>
+      <div id="sidebar" class="fixed top-0 left-0 h-full w-64 bg-gray-900 p-4 overflow-auto transform -translate-x-full transition-transform duration-3000 ease-in-out z-10">
+        <nav id="nav-links" class="space-y-2 mt-10">
+          <a href="/reset" class="block text-white bg-red-500 hover:bg-red-700 text-center px-4 py-2 rounded ml-4">
+            <i class="fa fa-undo" aria-hidden="true"></i> Reset Chat
+          </a>
+          <a href="/export" class="block text-white bg-blue-500 hover:bg-blue-700 text-center px-4 py-2 rounded ml-4">
+            <i class="fa fa-download"></i> Export
+          </a>
         </nav>
       </div>
     
@@ -72,18 +76,17 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
     <script>
       document.getElementById('menu-button').addEventListener('click', function() {
         document.getElementById('sidebar').classList.toggle('translate-x-0');
-        document.getElementById('sidebar').classList.toggle('hidden');
       });
-    
+
       document.addEventListener('click', function(event) {
         var isClickInside = document.getElementById('sidebar').contains(event.target);
         var isOnMenuButton = document.getElementById('menu-button').contains(event.target);
-    
-        if (!isClickInside && !isOnMenuButton && !document.getElementById('sidebar').classList.contains('hidden')) {
+
+        if (!isClickInside && !isOnMenuButton && document.getElementById('sidebar').classList.contains('translate-x-0')) {
           document.getElementById('sidebar').classList.toggle('translate-x-0');
-          document.getElementById('sidebar').classList.toggle('hidden');
-        }
+          }
       });
+
     </script>
   
 </body>

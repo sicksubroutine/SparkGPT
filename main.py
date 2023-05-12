@@ -210,11 +210,11 @@ def login():
         session["uuid"] = uuid
         session["identity_hash"] = identity_hash
         d_base = g.d_base
-        d_base.insert_user(username, ip_address, uuid, user_agent,
-                           identity_hash)
+        d_base.insert_user(username, ip_address, uuid, user_agent, identity_hash)
+        user = d_base.get_user(username)
+        print(f"{username} has {user['sats']} Sats")
         convo = d_base.insert_conversation(username, prompt, chosen_prompt)
         session["convo"] = convo["conversation_id"]
-        print(f"Conversation ID: {convo['conversation_id']}")
         return redirect("/chat")
     else:
       if session.get("username") and session.get("identity_hash"):
