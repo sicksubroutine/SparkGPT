@@ -51,6 +51,8 @@ def index():
     username = session["username"]
     d_base = g.d_base
     conv = d_base.get_conversations_for_user(username)
+    users = d_base.get_all_users()
+    print(f"Number of users: {len(users)}")
   return render_template("index.html", text=text, conversations=conv)
 
 
