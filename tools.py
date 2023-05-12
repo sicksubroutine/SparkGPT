@@ -2,7 +2,7 @@ import string, random, uuid, hashlib, os, openai, time, requests, logging
 
 logging.basicConfig(filename='logfile.log', level=logging.INFO)
 
-secretKey = os.environ['gpt-API']
+secretKey = os.environ['GPT_API']
 openai.api_key = f"{secretKey}"
 
 SATS = 0.00000001
