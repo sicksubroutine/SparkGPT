@@ -65,17 +65,19 @@ def clean_up_invoices():
 
 @app.route('/get_invoice', methods=['GET'])
 def get_invoice():
-  sats = request.args.get('sats')
-  memo = f"Payment for {sats} Sats"
-  data = {
-    "out": False,
-    "amount": sats,
-    "memo": memo,
-    "expiry": 1500,
-    "webhook": "https://chatgpt-flask-app.thechaz.repl.co/webhook"
-  }
-  res = requests.post(URL, headers=HEADERS, json=data)
-  if res.ok:
+  try:
+    sats = request.args.get('sats')
+    memo = f"Payment for {sats} Sats"
+    data = {
+      "out": False,
+      "amount": sats,
+      "memo": memo,
+      "expiry": 1500,
+      "webhook": "https://chatgpt-flask-app.thechaz.repl.co/webhook"
+    }
+    res = requests.post(URL, headers=HEADERS, json=data)
+    if not res.ok:
+      raise Exception("Error:", res.status_code, res.reason)
     session.pop("payment_request", None)
     session.pop("payment_hash", None)
     invoice = res.json()
@@ -92,8 +94,9 @@ def get_invoice():
     session["payment_request"] = payment_request
     session["payment_hash"] = payment_hash
     return {"status": "success", "payment_request": payment_request}
-  else:
-    logging.error("Error:", res.status_code, res.reason)
+  except Exception as e:
+    logging.error(e)
+    return {"status": "error"}
 
 
 @app.route("/qrcode_gen", methods=['GET'])
@@ -109,14 +112,15 @@ def qrcode_gen():
 
 
 def payment_check(payment_hash):
-  url = f"{URL}{payment_hash}"
-  response = requests.get(url, headers=HEADERS)
-  data = response.json()
-  if response.ok:
-    paid = data.get("paid")
-    return paid
-  else:
-    logging.error("Error:", response.status_code, response.reason)
+  try:
+    url = f"{URL}{payment_hash}"
+    response = requests.get(url, headers=HEADERS)
+    response_json = response.json()
+    if not response.ok:
+      raise Exception("Error:", response.status_code, response.reason)
+    return response_json.get("paid")
+  except Exception as e:
+    logging.error(e)
 
 
 @app.route("/webhook", methods=["POST"])
@@ -245,8 +249,7 @@ def chat():
     messages.append(dict)
   for message in messages:
     if message["role"] != "system":
-      message["content"] = markdown2.markdown(message["content"],
-                                              extras=["fenced-code-blocks"])
+      message["content"] = markdown2.markdown(message["content"], extras=["fenced-code-blocks"])
   # sats code
   sats = session.get("sats")
   user = d_base.get_user(username)
@@ -288,7 +291,6 @@ def respond():
   for dict in msg:
     messages.append(dict)
   messages = [{k: v for k, v in d.items() if k in ['role', 'content']} for d in messages]
-  
   if request.method == 'POST':
     message = request.form.get("message")
     message_estimate = estimate_tokens(message)
@@ -336,7 +338,7 @@ def reset_messages():
   d_base = g.d_base
   d_base.reset_conversation(convo)
   d_base.reset_conversation_summaries(convo)
-  logging.info("summary removed")
+  logging.info("summary reset")
   session.pop("prompt", None)
   session.pop("title", None)
   session.pop("convo", None)
@@ -387,7 +389,7 @@ def summary_of_messages():
     "role": "user",
     "content": summary_msgs
   }]
-  response, tokens = res(arr)
+  response, _ = res(arr)
   longer_response = response
   response = response.split()
   response = "_".join(response)

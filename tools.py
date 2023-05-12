@@ -122,25 +122,21 @@ def res(messages, model="gpt-3.5-turbo") -> str:
 
 
 def estimate_tokens(text, method="max"):
-  word_count = len(text.split(" "))
-  char_count = len(text)
-  tokens_count_per_word_est = word_count / 0.6
-  tokens_count_char_est = char_count / 4.0
-  output = 0
-  if method == "average":
-    output = (tokens_count_per_word_est + tokens_count_char_est) / 2
-  elif method == "words":
-    output = tokens_count_per_word_est
-  elif method == "chars":
-    output = tokens_count_char_est
-  elif method == 'max':
-    output = max(tokens_count_per_word_est, tokens_count_char_est)
-  elif method == 'min':
-    output = min(tokens_count_per_word_est, tokens_count_char_est)
-  else:
-    # return invalid method message
-    return "Invalid method. Use 'average', 'words', 'chars', 'max', or 'min'."
-  return int(output) + 5
+    word_count = len(text.split())
+    char_count = len(text)
+    tokens_count_per_word_est = word_count / 0.6
+    tokens_count_char_est = char_count / 4.0
+    methods = {
+        "average": lambda a, b: (a + b) / 2,
+        "words": lambda a, b: a,
+        "chars": lambda a, b: b,
+        "max": max,
+        "min": min
+    }
+    if method not in methods:
+        return "Invalid method. Use 'average', 'words', 'chars', 'max', or 'min'."
+    output = methods[method](tokens_count_per_word_est, tokens_count_char_est)
+    return int(output) + 5
 
 
 def get_bitcoin_cost(tokens, model="gpt-3.5-turbo"):
@@ -149,6 +145,6 @@ def get_bitcoin_cost(tokens, model="gpt-3.5-turbo"):
   elif model == "gpt-4":
     cost = 0.10  # gpt4 per 1k tokens
   url = "https://api.kraken.com/0/public/Ticker?pair=xbtusd"
-  r = requests.get(url)
-  data = r.json()["result"]["XXBTZUSD"]["c"]
-  return round(((tokens / 1000) * cost / round(float(data[0]))) / SATS)
+  response = requests.get(url)
+  response_json = response.json()["result"]["XXBTZUSD"]["c"]
+  return round(((tokens / 1000) * cost / round(float(response_json[0]))) / SATS)
