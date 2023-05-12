@@ -21,3 +21,5 @@ replit.nix
 
 node_modules/
 .vscode/
+
+!requirements.txt
