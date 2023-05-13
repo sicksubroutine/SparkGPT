@@ -1,5 +1,5 @@
-# ChatGPT-Flask-App
-A relatively simple ChatGPT app using the ChatGPT API.
+# LightningGPT
+A relatively simple ChatGPT app using the ChatGPT API and LNBits API to accept Bitcoin over the Lightning Network for payment.
 
 ### Features:
 
@@ -8,3 +8,4 @@ A relatively simple ChatGPT app using the ChatGPT API.
 * A chat interface that includes the ability to easily delete individual messages, reset the chat entirely, and download the conversation history to a markdown file.
 * Filename of the markdown file is ChatGPT generated based upon your initial message.
 * Ability to have multiple concurrent chats going at the same time. Front page will have a small summary of the ongoing chat as well as the current prompt being used.
+NOTE: Featurelist is old and I'm too lazy in the short term to update it. I'll do it eventually.
