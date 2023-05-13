@@ -13,13 +13,13 @@ logging.basicConfig(filename='logfile.log', level=logging.error)
 ## LNURL-AUTH : https://github.com/lnurl/luds/blob/luds/04.md
 ## TODO: Add ability to change AI models, partially complete.
 
-API_KEY = os.environ['lnbits_api']
+API_KEY = os.environ['LNBITS_API']
 URL = "https://legend.lnbits.com/api/v1/payments/"
 HEADERS = {"X-Api-Key": API_KEY, "Content-Type": "application/json"}
 TOKEN_LIMIT = 3000
 
 app = Flask(__name__, static_url_path='/static')
-app.secret_key = os.environ['sessionKey']
+app.secret_key = os.environ['SESSIONKEY']
 socketio = SocketIO(app)
 
 DATABASE = "prime_database.db"
@@ -55,6 +55,7 @@ def index():
     logging.info(f"Number of users: {len(users)}")
   return render_template("index.html", text=text, conversations=conv)
 
+
 def run_out_of_sats(message=None):
   d_base = g.d_base
   username = session["username"]
@@ -66,6 +67,7 @@ def run_out_of_sats(message=None):
   previous_token_usage = session.get("token_usage")
   message_estimate = estimate_tokens(message)
   return False
+
 
 def clean_up_invoices():
   path = "static/qr/"
@@ -227,7 +229,8 @@ def login():
         session["uuid"] = uuid
         session["identity_hash"] = identity_hash
         d_base = g.d_base
-        d_base.insert_user(username, ip_address, uuid, user_agent, identity_hash)
+        d_base.insert_user(username, ip_address, uuid, user_agent,
+                           identity_hash)
         user = d_base.get_user(username)
         print(f"{username} has {user['sats']} Sats")
         convo = d_base.insert_conversation(username, prompt, chosen_prompt)
@@ -260,7 +263,8 @@ def chat():
     messages.append(dict)
   for message in messages:
     if message["role"] != "system":
-      message["content"] = markdown2.markdown(message["content"], extras=["fenced-code-blocks"])
+      message["content"] = markdown2.markdown(message["content"],
+                                              extras=["fenced-code-blocks"])
   # sats code
   sats = session.get("sats")
   user = d_base.get_user(username)
@@ -301,7 +305,9 @@ def respond():
   messages = []
   for dict in msg:
     messages.append(dict)
-  messages = [{k: v for k, v in d.items() if k in ['role', 'content']} for d in messages]
+  messages = [{k: v
+               for k, v in d.items() if k in ['role', 'content']}
+              for d in messages]
   if request.method == 'POST':
     message = request.form.get("message")
     message_estimate = estimate_tokens(message)
@@ -314,8 +320,7 @@ def respond():
       sats = d_base.get_user(username)["sats"]
       if pre_cost > sats:
         # check to see if cost is likely to exceed balance.
-        logging.info(
-          f"{pre_cost} sats cost is more than {sats} sats balance")
+        logging.info(f"{pre_cost} sats cost is more than {sats} sats balance")
         session["force_buy"] = True
         return jsonify({"response": ""})
     messages.append({"role": "user", "content": message})
@@ -442,4 +447,3 @@ def logout():
 
 if __name__ == "__main__":
   socketio.run(app, debug=False, host='0.0.0.0', port=81)
-

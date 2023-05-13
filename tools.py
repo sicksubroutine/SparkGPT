@@ -2,7 +2,7 @@ import string, random, uuid, hashlib, os, openai, time, requests, logging
 
 logging.basicConfig(filename='logfile.log', level=logging.INFO)
 
-secretKey = os.environ['gpt-API']
+secretKey = os.environ['GPT-API']
 openai.api_key = f"{secretKey}"
 
 SATS = 0.00000001
@@ -34,35 +34,35 @@ def prompt_get(prompt) -> str:
 
   prompt_dict = {
     "prompt4chan": {
-      "prompt": os.environ['4chanPrompt'],
+      "prompt": os.environ['4CHANPROMPT'],
       "title": "4Chan AI"
     },
     "IFSPrompt": {
-      "prompt": os.environ['IFSPrompt'],
+      "prompt": os.environ['IFSPROMPT'],
       "title": "IFS AI"
     },
     "KetoPrompt": {
-      "prompt": os.environ['KetoPrompt'],
+      "prompt": os.environ['KETOPROMPT'],
       "title": "Keto AI"
     },
     "PythonPrompt": {
-      "prompt": os.environ['PythonPrompt'],
+      "prompt": os.environ['PYTHONPROMPT'],
       "title": "Python AI"
     },
     "TherapistPrompt": {
-      "prompt": os.environ['TherapistPrompt'],
+      "prompt": os.environ['THERAPISTPROMPT'],
       "title": "Therapist AI"
     },
     "foodMenuPrompt": {
-      "prompt": os.environ['foodMenuPrompt'],
+      "prompt": os.environ['FOODMENUPROMPT'],
       "title": "Food Menu AI"
     },
     "HelpfulPrompt": {
-      "prompt": os.environ['HelpfulPrompt'],
+      "prompt": os.environ['HELPFULPROMPT'],
       "title": "General AI"
     },
     "AI_Talks_To_Self": {
-      "prompt": os.environ['TalkToSelfPrompt'],
+      "prompt": os.environ['TALKTOSELFPROMPT'],
       "title": "Recursive AI"
     },
   }
