@@ -52,9 +52,20 @@ def index():
     d_base = g.d_base
     conv = d_base.get_conversations_for_user(username)
     users = d_base.get_all_users()
-    print(f"Number of users: {len(users)}")
+    logging.info(f"Number of users: {len(users)}")
   return render_template("index.html", text=text, conversations=conv)
 
+def run_out_of_sats(message=None):
+  d_base = g.d_base
+  username = session["username"]
+  user = d_base.get_user(username)
+  database_sats = user["sats"]
+  if not message:
+    if database_sats <= 0:
+      return True
+  previous_token_usage = session.get("token_usage")
+  message_estimate = estimate_tokens(message)
+  return False
 
 def clean_up_invoices():
   path = "static/qr/"
