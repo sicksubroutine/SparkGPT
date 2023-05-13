@@ -13,13 +13,13 @@ logging.basicConfig(filename='logfile.log', level=logging.error)
 ## LNURL-AUTH : https://github.com/lnurl/luds/blob/luds/04.md
 ## TODO: Add ability to change AI models, partially complete.
 
-API_KEY = os.environ['LNBITS_API']
+API_KEY = os.environ['lnbits_api']
 URL = "https://legend.lnbits.com/api/v1/payments/"
 HEADERS = {"X-Api-Key": API_KEY, "Content-Type": "application/json"}
 TOKEN_LIMIT = 3000
 
 app = Flask(__name__, static_url_path='/static')
-app.secret_key = os.environ['SESSIONKEY']
+app.secret_key = os.environ['sessionKey']
 socketio = SocketIO(app)
 
 DATABASE = "prime_database.db"
@@ -428,5 +428,5 @@ def logout():
 
 
 if __name__ == "__main__":
-  socketio.run(app, debug=False, allow_unsafe_werkzeug=True, host='0.0.0.0', port=81)
+  socketio.run(app, debug=False, host='0.0.0.0', port=81)
 
