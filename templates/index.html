@@ -1,143 +1,200 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
-  <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
-  <link href="{{url_for('static',filename='css/main.css')}}" rel="stylesheet">
-  {% if text %}
-  <script>
-  setTimeout(function() {
-const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
-window.history.replaceState({ path: newUrl }, '', newUrl);
-document.getElementById("black-box").style.display = "none";      
-document.getElementById("error").style.display = "none";}, 3000);
-  </script>
-  {% endif %}
-  
-  <style>
-    .prompt {
-    background: #000000;
-    color: #ffffff;
-}
-#payment-modal-backdrop {
-    pointer-events: none;
-  }
-  #payment-modal {
-    pointer-events: auto;
-  }
-  </style>
-  <title>ChatGPT Prompt Select</title>
-</head>
-<body class="bg-black text-white">
-  
-  <div class="grid grid-cols-4 gap-4">
-    <div class="col-start-2 col-span-2 p-4">
-      <header class="p-4 bg-black flex justify-between items-center">
-        <button id="menu-button" class="text-white">
-          <i class="fa fa-bars"></i>
-        </button>
-        <h1 class="text-lg md:text-xl text-center ml-[-20px]">LightningGPT</h1>
-        <div></div> <!--Spacer -->
-      </header>
-      <div class="max-w-md w-full space-y-8">
-        <form action="/login" method="post" class="mt-8 space-y-6">
-          <div class="rounded-md shadow-sm -space-y-px">
-            <div>
-              <p>Choose a prompt:</p>
-              <label for="prompt" class="sr-only"></label>
-              <select name="prompt" class="prompt appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm bg-gray-800">
-                <option value="HelpfulPrompt">General AI</option>
-                <option value="AI_Talks_To_Self">Recursive AI</option>
-                <option value="prompt4chan">4Chan AI</option>
-                <option value="IFSPrompt">IFS AI</option>
-                <option value="KetoPrompt">Keto AI</option>
-                <option value="foodMenuPrompt">Food Menu AI</option>
-                <option value="PythonPrompt">Python AI</option>
-                <option value="TherapistPrompt">Therapist AI</option>
-              </select>
-            </div>
-            <br>
-            <div class="mt-4">
-              <p>Choose a model:</p>
-              <label for="model" class="sr-only"></label>
-              <select name="model" class="prompt appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm bg-gray-800">
-                <option value="gpt-3.5-turbo">GPT3.5</option>
-                <option value="gpt-4">GPT-4</option>
-              </select>
-            </div>
-          </div>
-          <div>
-            <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-              Submit
-            </button>
-          </div>
-        </form>
-        <form action="/login" method="post" class="mt-8 space-y-6">
-          <textarea type="text" name="custom_prompt" id="text" class="prompt appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" placeholder="Enter a custom prompt..."></textarea>
-          <div class="mt-4">
-            <label for="model" class="sr-only">Choose a model:</label>
-            <select name="model" class="prompt appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm bg-gray-800">
-              <option value="gpt-3.5-turbo">GPT3.5</option>
-              <option value="gpt-4">GPT-4</option>
-            </select>
-          </div>
-          <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-            Submit
-          </button>
-        </form>
-      </div>
-    </div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+    />
+    <link
+      rel="shortcut icon"
+      type="image/x-icon"
+      href="{{ url_for('static', filename='favicon.ico') }}"
+    />
+    <link
+      href="{{url_for('static',filename='css/main.css')}}"
+      rel="stylesheet"
+    />
+    {% if text %}
+    <script>
+      setTimeout(function () {
+        const newUrl =
+          window.location.protocol +
+          "//" +
+          window.location.host +
+          window.location.pathname;
+        window.history.replaceState({ path: newUrl }, "", newUrl);
+        document.getElementById("black-box").style.display = "none";
+        document.getElementById("error").style.display = "none";
+      }, 3000);
+    </script>
+    {% endif %}
 
-    <div id="sidebar" class="fixed top-0 left-0 h-full w-1/2 sm:w-1/4 bg-black p-2 sm:p-4 overflow-auto transform -translate-x-full transition-transform duration-3000 ease-in-out z-10 border-r">
-      <nav id="nav-links" class="space-y-2 mt-10 text-xs sm:text-base">
-        <h2 class="text-2xl font-bold text-red-500 mb-4">Conversations</h2>
-        {% if conversations %}
-          {% for conversation in conversations %}
+    <style>
+      html {
+        height: 100%;
+      }
+      .prompt {
+        background: #000000;
+        color: #ffffff;
+      }
+      #payment-modal-backdrop {
+        pointer-events: none;
+      }
+      #payment-modal {
+        pointer-events: auto;
+      }
+    </style>
+    <title>ChatGPT Prompt Select</title>
+  </head>
+  <body class="bg-gray-900 text-white/90">
+    <div class="h-full">
+      <main class="min-h-full max-h-screen flex">
+        <div
+          id="sidebar"
+          class="bg-gray-950 w-96 sm:w-96 p-2 sm:p-4 border-r border-gray-800"
+        >
+          <nav id="nav-links" class="space-y-2 pt-4 text-xs sm:text-base">
+            <h2 class="text-2xl font-bold mb-4">Conversations</h2>
+            {% if conversations %} {% for conversation in conversations %}
             <div class="px-4 py-5 sm:px-6 bg-gray-800 mb-4 rounded-md">
               <h3 class="text-lg leading-6 font-medium text-white">
-                <a href="/login?conversation={{ conversation.id }}" class="text-indigo-600 hover:text-indigo-900">{{ conversation.prompt }}</a>
+                <a
+                  href="/login?conversation={{ conversation.id }}"
+                  class="text-indigo-600 hover:text-indigo-900"
+                  >{{ conversation.prompt }}</a
+                >
               </h3>
               <p class="mt-2 max-w-2xl text-sm text-gray-500">
                 {{ conversation.summary }}
               </p>
-              <a href="/delete_convo?conversation={{conversation.id}}"><i class="fas fa-trash text-red-500 hover:text-red-700"></i></a>
+              <a href="/delete_convo?conversation={{conversation.id}}"
+                ><i class="fas fa-trash text-red-500 hover:text-red-700"></i
+              ></a>
             </div>
-          {% endfor %}
+            {% endfor %} {% endif %} {% if not conversations %}
+            <div class="p-2 sm:px-6 bg-gray-700 mb-4 rounded-md text-center">
+              <span class="opacity-50">No conversations yet!</span>
+            </div>
+            {% endif %}
+          </nav>
+        </div>
+        <div class="min-h-screen p-4 flex w-full">
+          <section class="w-1/2 m-auto">
+            <header class="p-4">
+              <h1 class="text-2xl text-center">LightningGPT</h1>
+            </header>
+            <div class="max-w-md w-full space-y-8">
+              <form action="/login" method="post" class="mt-8 space-y-6">
+                <div class="rounded-md shadow-sm -space-y-px">
+                  <div>
+                    <p>Choose a prompt:</p>
+                    <label for="prompt" class="sr-only"></label>
+                    <select
+                      name="prompt"
+                      class="block w-full mt-1 rounded-md bg-gray-100 border-transparent focus:border-gray-500 focus:bg-white focus:ring-0 text-gray-900"
+                    >
+                      <option value="HelpfulPrompt">General AI</option>
+                      <option value="AI_Talks_To_Self">Recursive AI</option>
+                      <option value="prompt4chan">4Chan AI</option>
+                      <option value="IFSPrompt">IFS AI</option>
+                      <option value="KetoPrompt">Keto AI</option>
+                      <option value="foodMenuPrompt">Food Menu AI</option>
+                      <option value="PythonPrompt">Python AI</option>
+                      <option value="TherapistPrompt">Therapist AI</option>
+                    </select>
+                  </div>
+                  <br />
+                  <div class="mt-4">
+                    <p>Choose a model:</p>
+                    <label for="model" class="sr-only"></label>
+                    <select
+                      name="model"
+                      class="block w-full mt-1 rounded-md bg-gray-100 border-transparent focus:border-gray-500 focus:bg-white focus:ring-0 text-gray-900"
+                    >
+                      <option value="gpt-3.5-turbo">GPT3.5</option>
+                      <option value="gpt-4">GPT-4</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <button
+                    type="submit"
+                    class="group relative w-full flex justify-center py-2 px-4 border border-gray-600 text-sm font-medium rounded-md text-white/70 bg-transparent hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900"
+                  >
+                    Submit
+                  </button>
+                </div>
+              </form>
+              <hr
+                class="overflow-visible h-1 text-center after:top-[-13px] after:relative after:px-1 after:bg-gray-900 after:content-['OR'] border-t-1 border-gray-700"
+              />
+              <form action="/login" method="post" class="mt-8 space-y-6">
+                <textarea
+                  type="text"
+                  name="custom_prompt"
+                  id="text"
+                  class="mt-1 block w-full rounded-md bg-gray-100 border-transparent focus:border-gray-500 focus:bg-white focus:ring-0"
+                  placeholder="Enter a custom prompt..."
+                ></textarea>
+                <div class="mt-4">
+                  <label for="model" class="sr-only">Choose a model:</label>
+                  <select
+                    name="model"
+                    class="block w-full mt-1 rounded-md bg-gray-100 border-transparent focus:border-gray-500 focus:bg-white focus:ring-0 text-gray-900"
+                  >
+                    <option value="gpt-3.5-turbo">GPT3.5</option>
+                    <option value="gpt-4">GPT-4</option>
+                  </select>
+                </div>
+                <button
+                  type="submit"
+                  class="group relative w-full flex justify-center py-2 px-4 border border-gray-600 text-sm font-medium rounded-md text-white/70 bg-transparent hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900"
+                >
+                  Submit
+                </button>
+              </form>
+            </div>
+          </section>
+        </div>
+
+        {% if text %}
+        <div
+          class="col-start-2 col-span-2 w-full px-4 py-5 sm:px-6 text-center"
+        >
+          <div id="black-box">
+            <span class="reset-text" id="error">{{ text }}</span>
+          </div>
+        </div>
         {% endif %}
-        {% if not conversations %}
-        <div class="px-4 py-5 sm:px-6 bg-gray-800 mb-4 rounded-md">
-          <h3 class="text-lg leading-6 font-medium text-white">
-            <a href="#" class="text-indigo-600 hover:text-indigo-900">No conversations yet!</a>
-          </h3>
-          {% endif %}
-      </nav>
+      </main>
     </div>
-  {% if text %}
-  <div class="col-start-2 col-span-2 w-full px-4 py-5 sm:px-6 text-center">
-    <div id="black-box">
-      <span class="reset-text" id="error">{{ text }}</span>
-    </div>
-  </div>
-  {% endif %}
-</div>
 
-  <script>
-      document.getElementById('menu-button').addEventListener('click', function() {
-        document.getElementById('sidebar').classList.toggle('translate-x-0');
+    <script>
+      document
+        .getElementById("menu-button")
+        .addEventListener("click", function () {
+          document.getElementById("sidebar").classList.toggle("translate-x-0");
+        });
+
+      document.addEventListener("click", function (event) {
+        var isClickInside = document
+          .getElementById("sidebar")
+          .contains(event.target);
+        var isOnMenuButton = document
+          .getElementById("menu-button")
+          .contains(event.target);
+
+        if (
+          !isClickInside &&
+          !isOnMenuButton &&
+          document.getElementById("sidebar").classList.contains("translate-x-0")
+        ) {
+          document.getElementById("sidebar").classList.toggle("translate-x-0");
+        }
       });
-
-      document.addEventListener('click', function(event) {
-        var isClickInside = document.getElementById('sidebar').contains(event.target);
-        var isOnMenuButton = document.getElementById('menu-button').contains(event.target);
-
-        if (!isClickInside && !isOnMenuButton && document.getElementById('sidebar').classList.contains('translate-x-0')) {
-          document.getElementById('sidebar').classList.toggle('translate-x-0');
-          }
-      });
-
     </script>
-</body>
+  </body>
 </html>

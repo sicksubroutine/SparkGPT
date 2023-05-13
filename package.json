@@ -1,10 +1,14 @@
 {
   "dependencies": {
-    "tailwindcss": "^3.1.8"
+    "tailwindcss": "^3.3.2"
   },
-
   "scripts": {
     "create-css": "npx tailwindcss -i ./static/src/input.css -o ./static/css/main.css",
-    "run-python": "python3 ./main.py"
+    "run-python": "python3 ./main.py",
+    "dev": "SESSIONKEY=abc123 LNBITS_API=abc123 GPT_API=abc123 nodemon --exec npm run run-python"
+  },
+  "devDependencies": {
+    "@tailwindcss/forms": "^0.5.3",
+    "nodemon": "^2.0.22"
   }
 }
