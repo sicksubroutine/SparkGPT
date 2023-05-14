@@ -1,3 +1,7 @@
+from flask import g
+import sqlite3
+DATABASE = "prime_database.db"
+
 class DatabaseManager:
 
   def __init__(self, open_db):
@@ -238,3 +242,18 @@ class DatabaseManager:
     self.conn.execute("DELETE FROM payments")
     self.conn.commit()
 
+
+def open_db():
+  if 'database' not in g:
+    g.database = sqlite3.connect(DATABASE)
+    g.database.row_factory = sqlite3.Row
+  return g.database
+
+
+def close_db(error):
+  if 'database' in g:
+    g.database.close()
+
+
+def before_request():
+  g.d_base = DatabaseManager(open_db)

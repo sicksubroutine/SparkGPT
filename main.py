@@ -1,8 +1,7 @@
-from flask import Flask, render_template, session, request, redirect, send_file, jsonify, Response, g
+from flask import render_template, session, request, redirect, send_file, jsonify, Response, g
 from flask_socketio import SocketIO
-import os, markdown, requests, qrcode, random, logging, sqlite3
-from tools import random_token, get_IP_Address, uuid_func, hash_func, prompt_get, check_old_markdown, res, get_bitcoin_cost, estimate_tokens
-from db_manage import DatabaseManager
+import os, markdown, qrcode, random, logging
+from tools import DataUtils, ChatUtils, BitcoinUtils, app
 
 logging.basicConfig(filename='logfile.log', level=logging.error)
 
@@ -11,37 +10,10 @@ logging.basicConfig(filename='logfile.log', level=logging.error)
 ## TODO: Make the chat app look better across different interfaces. Responsive.
 ## TODO: Consider adding a way to login with the Lightning Network.
 ## LNURL-AUTH : https://github.com/lnurl/luds/blob/luds/04.md
-## TODO: Add ability to change AI models, partially complete.
+## TODO: Add ability to change AI models, mostly complete.
 
-API_KEY = os.environ['LNBITS_API']
-URL = "https://legend.lnbits.com/api/v1/payments/"
-HEADERS = {"X-Api-Key": API_KEY, "Content-Type": "application/json"}
 TOKEN_LIMIT = 3000
-
-app = Flask(__name__, static_url_path='/static')
-app.secret_key = os.environ['SESSIONKEY']
 socketio = SocketIO(app)
-
-DATABASE = "prime_database.db"
-
-
-def open_db():
-  if 'database' not in g:
-    g.database = sqlite3.connect(DATABASE)
-    g.database.row_factory = sqlite3.Row
-  return g.database
-
-
-@app.teardown_appcontext
-def close_db(error):
-  if 'database' in g:
-    g.database.close()
-
-
-@app.before_request
-def before_request():
-  g.d_base = DatabaseManager(open_db)
-
 
 @app.route("/", methods=["GET"])
 def index():
@@ -56,44 +28,14 @@ def index():
   return render_template("index.html", text=text, conversations=conv)
 
 
-"""def run_out_of_sats(message=None):
-  d_base = g.d_base
-  username = session["username"]
-  user = d_base.get_user(username)
-  database_sats = user["sats"]
-  if not message:
-    if database_sats <= 0:
-      return True
-  previous_token_usage = session.get("token_usage")
-  message_estimate = estimate_tokens(message)
-  return False"""
-
-
-def clean_up_invoices():
-  path = "static/qr/"
-  for filename in os.listdir(path):
-    if filename.endswith(".png"):
-      os.remove(path + filename)
-
-
 @app.route('/get_invoice', methods=['GET'])
 def get_invoice():
   try:
     sats = request.args.get('sats')
     memo = f"Payment for {sats} Sats"
-    data = {
-      "out": False,
-      "amount": sats,
-      "memo": memo,
-      "expiry": 1500,
-      "webhook": "https://chatgpt-flask-app.thechaz.repl.co/webhook"
-    }
-    res = requests.post(URL, headers=HEADERS, json=data)
-    if not res.ok:
-      raise Exception("Error:", res.status_code, res.reason)
     session.pop("payment_request", None)
     session.pop("payment_hash", None)
-    invoice = res.json()
+    invoice = BitcoinUtils.get_lightning_invoice(sats, memo)
     payment_request = invoice.get("payment_request")
     payment_hash = invoice.get("payment_hash")
     username = session.get("username")
@@ -113,7 +55,7 @@ def get_invoice():
 
 
 @app.route("/qrcode_gen", methods=['GET'])
-def qrcode_gen():
+def qrcode_gen() -> str:
   payment_request = request.args.get('payment_request')
   qr_code = qrcode.make(f"lightning:{payment_request}")
   random_filename = "qrcode_" + str(random.randint(0, 1000000)) + ".png"
@@ -124,23 +66,11 @@ def qrcode_gen():
   return path
 
 
-def payment_check(payment_hash):
-  try:
-    url = f"{URL}{payment_hash}"
-    response = requests.get(url, headers=HEADERS)
-    response_json = response.json()
-    if not response.ok:
-      raise Exception("Error:", response.status_code, response.reason)
-    return response_json.get("paid")
-  except Exception as e:
-    logging.error(e)
-
-
 @app.route("/webhook", methods=["POST"])
 def webhook():
   data = request.json
   payment_hash = data.get("payment_hash")
-  paid = payment_check(payment_hash)
+  paid = BitcoinUtils.payment_check(payment_hash)
   if paid:
     d_base = g.d_base
     d_base.update_payment(payment_hash, "invoice_status", "paid")
@@ -155,7 +85,7 @@ def webhook():
     d_base.update_user(username, "sats", current_balance)
     d_base.update_user(username, "recently_paid", True)
     current_user = d_base.get_user(username)
-    clean_up_invoices()
+    DataUtils.clean_up_invoices()
   return "OK"
 
 
@@ -173,16 +103,16 @@ def payment_updates():
 
 @app.route('/login', methods=['POST', 'GET'])
 def login():
-  ip_address = get_IP_Address(request)
-  uuid = uuid_func()
+  ip_address = DataUtils.get_IP_Address(request)
+  uuid = DataUtils.uuid_func()
   user_agent = request.headers.get('User-Agent')
   username = session.get('username')
-  identity_hash = hash_func(ip_address, uuid, user_agent)
+  identity_hash = DataUtils.hash_func(ip_address, uuid, user_agent)
   if request.method == 'POST':
     if 'prompt' in request.form:
       prompt = request.form.get("prompt")
       model = request.form.get("model")
-      prompt_dict = prompt_get(prompt)
+      prompt_dict = ChatUtils.prompt_get(prompt)
       chosen_prompt = prompt_dict["prompt"]
       title = prompt_dict["title"]
       session["title"] = title
@@ -201,7 +131,7 @@ def login():
     convo = d_base.get_conversation(convo_id)
     prompt = convo["prompt"]
     if prompt != "CustomPrompt":
-      prompt_dict = prompt_get(prompt)
+      prompt_dict = DataUtils.prompt_get(prompt)
       title = prompt_dict["title"]
       session["title"] = title
     else:
@@ -223,7 +153,7 @@ def login():
           session["user_agent"] = user_agent
           return redirect("/chat")
       else:
-        username = "user" + random_token()
+        username = "user" + DataUtils.random_token()
         session["username"] = username
         session["ip_address"] = ip_address
         session["uuid"] = uuid
@@ -262,16 +192,14 @@ def chat():
   msg = d_base.get_messages(convo)
   summary = d_base.get_conversation_summaries(convo)["summary"]
   if len(summary) == 0 and len(msg) > 1:
-    long_res, short_res = summary_of_messages()
-    convo = session.get("convo")
+    long_res, short_res = DataUtils.summary_of_messages(convo)
     d_base.update_conversation_summaries(convo, long_res, short_res)
   messages = []
   for dict in msg:
     messages.append(dict)
   for message in messages:
     if message["role"] != "system":
-      message["content"] = markdown.markdown(message["content"],
-                                             extensions=['fenced_code'])
+      message["content"] = markdown.markdown(message["content"], extensions=['fenced_code'])
   # sats code
   sats = session.get("sats")
   user = d_base.get_user(username)
@@ -315,17 +243,18 @@ def respond():
   for dict in msg:
     messages.append(dict)
   messages = [{k: v
-               for k, v in d.items() if k in ['role', 'content']}
-              for d in messages]
+              for k, v in d.items() if k in ['role', 'content']}
+              for d in messages
+  ]
   if request.method == 'POST':
     message = request.form.get("message")
-    message_estimate = estimate_tokens(message)
+    message_estimate = ChatUtils.estimate_tokens(message)
     session["message_estimate"] = message_estimate
     previous_token_usage = session.get("token_usage")
     if previous_token_usage != None and message_estimate != None:
       total_tokens = previous_token_usage + message_estimate
       logging.debug(f"Token Estimation: {message_estimate}")
-      pre_cost = get_bitcoin_cost(total_tokens, model)
+      pre_cost = BitcoinUtils.get_bitcoin_cost(total_tokens, model)
       sats = d_base.get_user(username)["sats"]
       if pre_cost > sats:
         # check to see if cost is likely to exceed balance.
@@ -335,10 +264,10 @@ def respond():
     messages.append({"role": "user", "content": message})
     d_base.insert_message(convo, "user", message)
     d_base.insert_conversation_history(convo, "user", message)
-  response, token_usage = res(messages, model)
+  response, token_usage = ChatUtils.openai_response(messages, model)
   session["token_usage"] = token_usage
   # sats code, getting cost in sats
-  cost = get_bitcoin_cost(token_usage, model)
+  cost = BitcoinUtils.get_bitcoin_cost(token_usage, model)
   sats = session.get("sats") - cost
   session["sats"] = sats
   d_base.update_user(username, "sats", sats)
@@ -390,63 +319,16 @@ def delete_msg():
   d_base.delete_message(convo, msg_id)
   return redirect("/chat")
 
-
-def summary_of_messages():
-  if not session.get("username"):
-    return redirect("/")
-  convo = session["convo"]
-  d_base = g.d_base
-  messages = d_base.get_messages(convo)
-  summary_msgs = ""
-  for index, message in enumerate(messages):
-    if message["role"] == "user":
-      if index > 1:
-        break
-      summary_msgs += message["content"]
-    elif message["role"] == "assistant":
-      pass
-  prompt = "The user's question or request should be summarized into seven words or less. No explanation or elaboration. Response needs to be seven words or less, no punctuation."
-  arr = [{
-    "role": "system",
-    "content": f"{prompt}"
-  }, {
-    "role": "user",
-    "content": summary_msgs
-  }]
-  response, _ = res(arr)
-  longer_response = response
-  response = response.split()
-  response = "_".join(response)
-  response = response.replace(".", "")
-  response = response.replace(",", "")
-  return longer_response, response
-
-
 @app.route("/export")
 def export_messages():
   if not session.get("username"):
     return redirect("/")
-  check_old_markdown()
+  DataUtils.check_old_markdown()
   convo = session["convo"]
-  d_base = g.d_base
-  messages = d_base.get_conversation_history(convo)
-  summary = d_base.get_conversation_summaries(convo)["short_summary"]
-  markdown = ""
-  for message in messages:
-    if message['role'] == 'system':
-      markdown += session.get("title") + "\n\n"
-      markdown += session.get("model") + "\n\n"
-    elif message['role'] == 'user':
-      markdown += f"**User:** {message['content']}\n\n"
-    elif message['role'] == 'assistant':
-      markdown += f"**Assistant:** {message['content']}\n\n"
-  filename = f"{summary}.md"
-  path = "static/markdown/"
-  path_filename = path + filename
-  with open(path_filename, "w") as f:
-    f.write(markdown)
+  title = session.get("title")
+  model = session.get("model")
+  path_filename = DataUtils.export_as_markdown(convo, title, model)
   return send_file(path_filename, as_attachment=True)
-
 
 @app.route("/logout")
 def logout():
