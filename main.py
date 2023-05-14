@@ -15,7 +15,10 @@ logging.basicConfig(filename='logfile.log', level=logging.error)
 
 API_KEY = os.environ['LNBITS_API']
 URL = "https://legend.lnbits.com/api/v1/payments/"
-HEADERS = {"X-Api-Key": API_KEY, "Content-Type": "application/json"}
+HEADERS = {
+  "X-Api-Key": API_KEY, 
+  "Content-Type": "application/json"
+}
 TOKEN_LIMIT = 3000
 
 app = Flask(__name__, static_url_path='/static')
@@ -56,7 +59,7 @@ def index():
   return render_template("index.html", text=text, conversations=conv)
 
 
-def run_out_of_sats(message=None):
+"""def run_out_of_sats(message=None):
   d_base = g.d_base
   username = session["username"]
   user = d_base.get_user(username)
@@ -66,7 +69,7 @@ def run_out_of_sats(message=None):
       return True
   previous_token_usage = session.get("token_usage")
   message_estimate = estimate_tokens(message)
-  return False
+  return False"""
 
 
 def clean_up_invoices():
@@ -243,6 +246,12 @@ def login():
         session["convo"] = convo["conversation_id"]
       return redirect("/chat")
 
+@app.route('/top_up')
+def top_up():
+  if not session.get("username"):
+    return redirect("/")
+  username = session.get('username')
+  return render_template('pay.html', username=username)
 
 @app.route("/chat", methods=["GET"])
 def chat():
@@ -290,7 +299,7 @@ def chat():
                          messages=messages,
                          title=session.get("title"),
                          text=text,
-                         token_left=sats)
+                         token_left=sats, model=session.get("model"))
 
 
 @app.route("/respond", methods=["POST"])
@@ -300,6 +309,7 @@ def respond():
   messages = []
   username = session["username"]
   convo = session.get("convo")
+  model = session.get("model")
   d_base = g.d_base
   msg = d_base.get_messages(convo)
   messages = []
@@ -316,7 +326,7 @@ def respond():
     if previous_token_usage != None and message_estimate != None:
       total_tokens = previous_token_usage + message_estimate
       logging.debug(f"Token Estimation: {message_estimate}")
-      pre_cost = get_bitcoin_cost(total_tokens)
+      pre_cost = get_bitcoin_cost(total_tokens, model)
       sats = d_base.get_user(username)["sats"]
       if pre_cost > sats:
         # check to see if cost is likely to exceed balance.
@@ -326,11 +336,10 @@ def respond():
     messages.append({"role": "user", "content": message})
     d_base.insert_message(convo, "user", message)
     d_base.insert_conversation_history(convo, "user", message)
-  model = session.get("model")
   response, token_usage = res(messages, model)
   session["token_usage"] = token_usage
   # sats code, getting cost in sats
-  cost = get_bitcoin_cost(token_usage)
+  cost = get_bitcoin_cost(token_usage, model)
   sats = session.get("sats") - cost
   session["sats"] = sats
   d_base.update_user(username, "sats", sats)

@@ -1,4 +1,4 @@
-# LightningGPT
+# SparkGPT
 A relatively simple ChatGPT app using the ChatGPT API and LNBits API to accept Bitcoin over the Lightning Network for payment.
 
 ### Features:

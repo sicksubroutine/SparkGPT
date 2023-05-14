@@ -19,7 +19,7 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
   <link href="{{url_for('static',filename='css/main.css')}}" rel="stylesheet">
   <style>
   </style>
-  <title>LightningGPT {{ title }} Chat</title>
+  <title>SparkGPT {{ model|upper }} {{ title }} Chat</title>
 </head>
 <body class="bg-black text-white">
   <div style="height:92vh;" class="flex justify-center text-white">
@@ -39,7 +39,7 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
         <button id="menu-button" class="text-white">
           <i class="fa fa-bars"></i>
         </button>
-        <h1 class="text-lg md:text-xl text-center"><a href="/">{{ title }}</a></h1>
+        <h1 class="text-lg md:text-xl text-center"><a href="/">{{ title }} || {{ model|upper }}</a></h1>
         <div></div> <!-- Spacer -->
       </header>
   
@@ -60,7 +60,7 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
       <footer class="p-4 bg-black border-t border-b border-gray-700 border-l border-r w-full flex flex-col md:items-center md:justify-between space-y-2 md:space-y-4">
         <div class="flex justify-between items-center w-full md:max-w-2xl">
           {% if token_left %}
-          <div class="text-center text-white">Sats Remaining: <span class="text-red-500">{{ token_left }}</span></div>
+          <div class="text-center text-white">Sats Remaining: <span class="text-red-500">{{ token_left }}</span> || <a href="/top_up" class="hover:text-red-500">Top Up Now</a></div>
           {% endif %}
           
         </div>
