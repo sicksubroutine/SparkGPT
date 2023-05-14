@@ -20,7 +20,7 @@ function sendMessage(event) {
   
   const userMessage = document.createElement('div');
   userMessage.textContent = message;
-  userMessage.classList.add('user-message', 'new-message', 'max-w-sm', 'ml-auto', 'py-2', 'px-4', 'rounded-lg', 'bg-green-700', 'text-white');
+  userMessage.classList.add('user-message', 'new-message', 'max-w-sm', 'ml-auto', 'py-2', 'px-4', 'rounded-lg', 'bg-green-700', 'text-white', 'items-end');
   messageBox.appendChild(userMessage);
   
   const assistantMessage = document.createElement('div');

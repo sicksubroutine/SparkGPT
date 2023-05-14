@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="static/script.js"></script>
   <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+  <link href="/static/prism.css" rel="stylesheet"/>
   {% if text %}
   <script>
     setTimeout(function() {
@@ -45,17 +46,17 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
   
   
       <main id="message-box" class="flex-grow overflow-y-scroll bg-gray-800 p-4 space-y-6 md:max-h-[72vh] w-full md:max-w-2xl md:mx-auto sm:max-h-[64vh] lg:max-h-[74vh] border-l border-r border-gray-700">
-        {% for message in messages %}
-        {% if message.role != 'system' %}
-        <div class="flex flex-col {% if message.role == 'assistant' %}items-start{% else %}items-end{% endif %}">
-          <div class="max-w-sm mx-2 py-2 px-4 rounded-lg {% if message.role == 'assistant' %}bg-blue-700 text-white{% else %}bg-green-700 text-white{% endif %}">
-            {{ message.content|replace('<pre>', '<pre class="code">')|safe }}
-          </div>
-          <a href="/delete_msg?msg={{ message.id }}" class="text-sm text-red-300 hover:text-red-500"><i class="fas fa-trash"></i></a>
-        </div>
-        {% endif %}
-        {% endfor %}
-      </main>
+    {% for message in messages %}
+    {% if message.role != 'system' %}
+    <div class="flex flex-col {% if message.role == 'assistant' %}items-start{% else %}items-end{% endif %}">
+      <div class="max-w-md mx-2 py-2 px-4 rounded-lg {% if message.role == 'assistant' %}bg-blue-700 text-white{% else %}bg-green-700 text-white{% endif %}">
+        {{ message.content|safe }}
+      </div>
+      <a href="/delete_msg?msg={{ message.id }}" class="text-sm text-red-300 hover:text-red-500"><i class="fas fa-trash"></i></a>
+    </div>
+    {% endif %}
+    {% endfor %}
+    </main>
   
       <footer class="p-4 bg-black border-t border-b border-gray-700 border-l border-r w-full flex flex-col md:items-center md:justify-between space-y-2 md:space-y-4">
         <div class="flex justify-between items-center w-full md:max-w-2xl">
@@ -73,6 +74,7 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
       </footer>
     </div>
   </div>
+  
     <script>
       document.getElementById('menu-button').addEventListener('click', function() {
         document.getElementById('sidebar').classList.toggle('translate-x-0');
@@ -88,6 +90,6 @@ window.history.replaceState({ path: newUrl }, '', newUrl);
       });
 
     </script>
-  
+    <script src="/static/prism.js"></script>
 </body>
 </html>

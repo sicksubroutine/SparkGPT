@@ -1,6 +1,6 @@
 from flask import Flask, render_template, session, request, redirect, send_file, jsonify, Response, g
 from flask_socketio import SocketIO
-import os, markdown2, requests, qrcode, random, logging, sqlite3
+import os, markdown, requests, qrcode, random, logging, sqlite3
 from tools import random_token, get_IP_Address, uuid_func, hash_func, prompt_get, check_old_markdown, res, get_bitcoin_cost, estimate_tokens
 from db_manage import DatabaseManager
 
@@ -15,10 +15,7 @@ logging.basicConfig(filename='logfile.log', level=logging.error)
 
 API_KEY = os.environ['LNBITS_API']
 URL = "https://legend.lnbits.com/api/v1/payments/"
-HEADERS = {
-  "X-Api-Key": API_KEY, 
-  "Content-Type": "application/json"
-}
+HEADERS = {"X-Api-Key": API_KEY, "Content-Type": "application/json"}
 TOKEN_LIMIT = 3000
 
 app = Flask(__name__, static_url_path='/static')
@@ -235,7 +232,6 @@ def login():
         d_base.insert_user(username, ip_address, uuid, user_agent,
                            identity_hash)
         user = d_base.get_user(username)
-        print(f"{username} has {user['sats']} Sats")
         convo = d_base.insert_conversation(username, prompt, chosen_prompt)
         session["convo"] = convo["conversation_id"]
         return redirect("/chat")
@@ -246,12 +242,14 @@ def login():
         session["convo"] = convo["conversation_id"]
       return redirect("/chat")
 
+
 @app.route('/top_up')
 def top_up():
   if not session.get("username"):
     return redirect("/")
   username = session.get('username')
   return render_template('pay.html', username=username)
+
 
 @app.route("/chat", methods=["GET"])
 def chat():
@@ -272,8 +270,8 @@ def chat():
     messages.append(dict)
   for message in messages:
     if message["role"] != "system":
-      message["content"] = markdown2.markdown(message["content"],
-                                              extras=["fenced-code-blocks"])
+      message["content"] = markdown.markdown(message["content"],
+                                             extensions=['fenced_code'])
   # sats code
   sats = session.get("sats")
   user = d_base.get_user(username)
@@ -299,7 +297,8 @@ def chat():
                          messages=messages,
                          title=session.get("title"),
                          text=text,
-                         token_left=sats, model=session.get("model"))
+                         token_left=sats,
+                         model=session.get("model"))
 
 
 @app.route("/respond", methods=["POST"])
@@ -435,7 +434,8 @@ def export_messages():
   markdown = ""
   for message in messages:
     if message['role'] == 'system':
-      markdown += f"# {message['content']}\n\n"
+      markdown += session.get("title") + "\n\n"
+      markdown += session.get("model") + "\n\n"
     elif message['role'] == 'user':
       markdown += f"**User:** {message['content']}\n\n"
     elif message['role'] == 'assistant':
