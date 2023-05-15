@@ -409,6 +409,8 @@ class BitcoinUtils:
       price = round(((tokens / 1000) * cost / round(float(response_json[0]))) / SATS)
       return price
     except Exception as e:
+      logging.error(f"Failed to calculate Bitcoin cost: {e}")
+      return None
 
 
   @staticmethod
