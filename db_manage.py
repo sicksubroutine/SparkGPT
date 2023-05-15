@@ -63,8 +63,9 @@ class DatabaseManager:
   def insert_user(self, username, ip_address, uuid, user_agent, identity_hash):
     self.conn.execute(
       '''
-          INSERT INTO users (username, ip_address, uuid, user_agent, identity_hash, sats, recently_paid)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO users 
+      (username, ip_address, uuid, user_agent, identity_hash, sats, recently_paid)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
       ''', (username, ip_address, uuid, user_agent, identity_hash, 0, False))
     self.conn.commit()
 
@@ -90,16 +91,20 @@ class DatabaseManager:
   def insert_conversation(self, username, prompt, chosen_prompt):
       
         cursor = self.conn.cursor()
-        cursor.execute("INSERT INTO conversations (username, prompt) VALUES (?, ?)", (username, prompt))
+        cursor.execute("INSERT INTO conversations (username, prompt) VALUES (?, ?)", 
+                       (username, prompt))
         conversation_id = cursor.lastrowid
         self.conn.commit()
 
-        cursor.execute("INSERT INTO conversation_history (conversation_id, role, content) VALUES (?, ?, ?)",
+        cursor.execute("""INSERT INTO conversation_history 
+                      (conversation_id, role, content) 
+                       VALUES (?, ?, ?)""",
                        (conversation_id, 'system', chosen_prompt))
         conversation_history_id = cursor.lastrowid
         self.conn.commit()
 
-        cursor.execute("INSERT INTO messages (conversation_id, role, content) VALUES (?, ?, ?)",
+        cursor.execute("""INSERT INTO messages (conversation_id, role, content) 
+                      VALUES (?, ?, ?)""",
                        (conversation_id, 'system', chosen_prompt))
         message_id = cursor.lastrowid
         self.conn.commit()
@@ -113,14 +118,18 @@ class DatabaseManager:
   
   def reset_conversation(self, conversation_id):
     cursor = self.conn.cursor()
-    cursor.execute("SELECT * FROM messages WHERE conversation_id=? AND role=?", (conversation_id, 'system'))
+    cursor.execute("SELECT * FROM messages WHERE conversation_id=? AND role=?", 
+                   (conversation_id, 'system'))
     system_message = cursor.fetchone()
-    self.conn.execute("DELETE FROM messages WHERE conversation_id=? AND id!=?", (conversation_id, system_message[0]))
+    self.conn.execute("DELETE FROM messages WHERE conversation_id=? AND id!=?", 
+                      (conversation_id, system_message[0]))
     self.conn.commit()
     # do the same for the conversation_history
-    cursor.execute("SELECT * FROM conversation_history WHERE conversation_id=? AND role=?", (conversation_id, 'system'))
+    cursor.execute("""SELECT * FROM conversation_history 
+                  WHERE conversation_id=? AND role=?""", (conversation_id, 'system'))
     system_message = cursor.fetchone()
-    self.conn.execute("DELETE FROM conversation_history WHERE conversation_id=? AND id!=?", (conversation_id, system_message[0]))
+    self.conn.execute("""DELETE FROM conversation_history WHERE conversation_id=? 
+                      AND id!=?""", (conversation_id, system_message[0]))
     self.conn.commit()
 
   def delete_conversation(self, conversation_id):
@@ -167,8 +176,8 @@ class DatabaseManager:
   def insert_conversation_history(self, conversation_id, role, content):
     cursor = self.conn.cursor()
     cursor.execute(
-      "INSERT INTO conversation_history (conversation_id, role, content) VALUES (?, ?, ?)",
-      (conversation_id, role, content))
+  "INSERT INTO conversation_history (conversation_id, role, content) VALUES (?, ?, ?)",
+  (conversation_id, role, content))
     self.conn.commit()
     return cursor.lastrowid
 
@@ -191,7 +200,8 @@ class DatabaseManager:
   
   def delete_message(self, conversation_id, message_id):
     cursor = self.conn.cursor()
-    cursor.execute("DELETE FROM messages WHERE conversation_id=? AND id=?", (conversation_id, message_id))
+    cursor.execute("DELETE FROM messages WHERE conversation_id=? AND id=?", 
+                   (conversation_id, message_id))
     self.conn.commit()
 
   def get_messages(self, conversation_id):
@@ -202,10 +212,17 @@ class DatabaseManager:
     columns = [col[0] for col in cursor.description]
     return [dict(zip(columns, row)) for row in rows]
 
-  def insert_payment(self, username, amount, memo, payment_request, payment_hash, invoice_status):
+  def insert_payment(self, 
+                     username, 
+                     amount, 
+                     memo, 
+                     payment_request, 
+                     payment_hash, 
+                     invoice_status):
     self.conn.execute(
         '''
-        INSERT INTO payments (username, amount, memo, payment_request, payment_hash, invoice_status)
+        INSERT INTO payments 
+        (username, amount, memo, payment_request, payment_hash, invoice_status)
         VALUES (?, ?, ?, ?, ?, ?)
         ''', (username, amount, memo, payment_request, payment_hash, invoice_status))
     self.conn.commit()
@@ -227,7 +244,8 @@ class DatabaseManager:
       
   def get_invoice_status(self, payment_hash):
     cursor = self.conn.cursor()
-    cursor.execute("SELECT invoice_status FROM payments WHERE payment_hash=?", (payment_hash,))
+    cursor.execute("SELECT invoice_status FROM payments WHERE payment_hash=?", 
+                   (payment_hash,))
     result = cursor.fetchone()
     if result:
         return result[0]
