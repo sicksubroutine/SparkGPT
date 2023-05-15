@@ -1,6 +1,6 @@
 import string, random, uuid, hashlib, os, openai, time, requests, logging
 from __init__ import app
-from flask import g
+from flask import g, Request
 
 logging.basicConfig(filename='logfile.log', level=logging.INFO)
 
@@ -10,18 +10,38 @@ HEADERS = {
   "X-Api-Key": API_KEY, 
   "Content-Type": "application/json"
 }
+SATS = 0.00000001
 SECRETKEY = os.environ['GPT-API']
 openai.api_key = f"{SECRETKEY}"
-
-SATS = 0.00000001
 
 class DataUtils:
 
   @staticmethod
-  def api_request(method, url, **kwargs):
-    response = requests.request(method, url, **kwargs)
-    response_json = response.json()
-    return response, response_json
+  def api_request(method: str, url:str, **kwargs: dict) -> tuple:
+    """
+    Sends an API request to the given URL using the given HTTP method and keyword arguments.
+
+    Args:
+      method (str): The HTTP method to be used for the request.
+      url (str): The URL for the request.
+      **kwargs (dict): The keyword arguments to be passed to the request.
+
+    Raises:
+      Exception: If the API request fails.
+
+    Returns:
+      tuple: A tuple containing the response and the response JSON.
+      The tuple has the following structure: (response, response_json)
+    """
+    try:
+      response = requests.request(method, url, **kwargs)
+      if not response.ok:
+        raise Exception(f"API request failed with status code {response.status_code}.")
+      response_json = response.json()
+      return response, response_json
+    except Exception as e:
+      logging.error(f"API request failed: {e}")
+      return None, None
   
   @staticmethod
   def random_token() -> str:
@@ -36,7 +56,7 @@ class DataUtils:
     return ran_token
 
   @staticmethod
-  def get_IP_Address(request) -> str:
+  def get_IP_Address(request: Request) -> str:
     """
     Retrieves the IP address of the user.
 
@@ -117,7 +137,7 @@ class DataUtils:
             os.remove(path + filename)
 
   @staticmethod
-  def summary_of_messages(convo) -> tuple:
+  def summary_of_messages(convo: str) -> tuple:
     """
     Generates a summary of the user's messages in a conversation and obtains a concise response.
 
@@ -165,7 +185,7 @@ class DataUtils:
     return longer_response, response
 
   @staticmethod
-  def export_as_markdown(convo, title, model):
+  def export_as_markdown(convo:str, title:str, model:str) -> str:
     """
     Exports a conversation as a Markdown file.
 
@@ -206,7 +226,7 @@ class DataUtils:
 class ChatUtils:
 
   @staticmethod
-  def prompt_get(prompt) -> dict:
+  def prompt_get(prompt:str) -> dict:
     """
     Retrieves a prompt and its associated title based on the given prompt key.
 
@@ -262,7 +282,7 @@ class ChatUtils:
     })
 
   @staticmethod
-  def openai_response(messages, model="gpt-3.5-turbo") -> tuple:
+  def openai_response(messages: list, model:str="gpt-3.5-turbo") -> tuple:
     """
     Sends messages to the OpenAI assistant and retrieves the assistant's response.
 
@@ -322,7 +342,7 @@ class ChatUtils:
     return assistant_response, token_usage
 
   @staticmethod
-  def estimate_tokens(text, method="max") -> int|None:
+  def estimate_tokens(text:str, method:str="max") -> int|None:
     """
     Estimates the number of tokens required to process the given text.
 
@@ -360,7 +380,7 @@ class ChatUtils:
 class BitcoinUtils:
 
   @staticmethod
-  def get_bitcoin_cost(tokens, model="gpt-3.5-turbo") -> int:
+  def get_bitcoin_cost(tokens: int, model:str="gpt-3.5-turbo") -> int:
     """
     Calculates the cost of generating the given number of tokens in Bitcoin.
 
@@ -378,17 +398,21 @@ class BitcoinUtils:
       - The Kraken API is used to retrieve the BTC to USD exchange rate.
       - The cost is rounded to the nearest whole number of Satoshis (0.00000001 BTC).
     """
-    if model == "gpt-3.5-turbo":
-      cost = 0.0099  # chatgpt per 1k tokens
-    elif model == "gpt-4":
-      cost = 0.10  # gpt4 per 1k tokens
-    response = requests.get("https://api.kraken.com/0/public/Ticker?pair=xbtusd")
-    response_json = response.json()["result"]["XXBTZUSD"]["c"]
-    price = round(((tokens / 1000) * cost / round(float(response_json[0]))) / SATS)
-    return price
+    try:
+      if model == "gpt-3.5-turbo":
+        cost = 0.0099  # chatgpt per 1k tokens
+      elif model == "gpt-4":
+        cost = 0.10  # gpt4 per 1k tokens
+      response, response_json = DataUtils.api_request("GET", "https://api.kraken.com/0/public/Ticker?pair=xbtusd")
+      #response = requests.get("https://api.kraken.com/0/public/Ticker?pair=xbtusd")
+      #response_json = response.json()["result"]["XXBTZUSD"]["c"]
+      price = round(((tokens / 1000) * cost / round(float(response_json[0]))) / SATS)
+      return price
+    except Exception as e:
+
 
   @staticmethod
-  def get_lightning_invoice(sats, memo):
+  def get_lightning_invoice(sats:str, memo:str) -> dict|None:
     """
     Generates a Lightning invoice for the given amount of Satoshis.
 
@@ -445,3 +469,4 @@ class BitcoinUtils:
       return response_json.get("paid")
     except Exception as e:
       logging.error(e)
+      return False

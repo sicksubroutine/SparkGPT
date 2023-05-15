@@ -242,10 +242,7 @@ def respond():
   messages = []
   for dict in msg:
     messages.append(dict)
-  messages = [{k: v
-              for k, v in d.items() if k in ['role', 'content']}
-              for d in messages
-  ]
+  messages = [{k: v for k, v in d.items() if k in ['role','content']} for d in messages ]
   if request.method == 'POST':
     message = request.form.get("message")
     message_estimate = ChatUtils.estimate_tokens(message)
