@@ -466,15 +466,9 @@ class BitcoinUtils:
       "webhook": "https://chatgpt-flask-app.thechaz.repl.co/webhook"
     }
     try:
-<<<<<<< HEAD
-      response, response_json = DataUtils.api_request("POST",
-                                                      URL,
-                                                      headers=HEADERS,
-=======
       response, response_json = DataUtils.api_request("POST", 
                                                       URL, 
                                                       headers=HEADERS, 
->>>>>>> eed8110946c403bfe72bd82a489aa9564627ece5
                                                       json=data)
       if not response.ok:
         raise Exception("Error:", response.status_code, response.reason)
