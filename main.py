@@ -1,7 +1,8 @@
 from flask import render_template, session, request, redirect, send_file,jsonify
 from flask import Response, g
 from flask_socketio import SocketIO
-from tools import DataUtils, ChatUtils, BitcoinUtils, app
+from tools import DataUtils, ChatUtils, BitcoinUtils
+from __init__ import app
 import os 
 import markdown 
 import qrcode 

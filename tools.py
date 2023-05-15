@@ -1,4 +1,3 @@
-from __init__ import app
 from flask import g, Request
 import string
 import random
@@ -179,16 +178,15 @@ class DataUtils:
     summary_msgs = ""
     for index, message in enumerate(messages):
       if message["role"] == "user":
-        if index > 1:
+        if index == 1:
           break
         summary_msgs += message["content"]
       elif message["role"] == "assistant":
         pass
-    prompt = """
-          The user's question or request should be summarized into seven words or less. 
+    prompt = """ The user's question should be summarized into five words or less. 
           No explanation or elaboration. 
-          Response needs to be seven words or less, no punctuation.
-            """
+          Response needs to be five words or less, no punctuation.
+          No code snippets. Just summarize concepts in words."""
     summary = [{
       "role": "system",
       "content": f"{prompt}"
