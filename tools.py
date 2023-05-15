@@ -178,6 +178,7 @@ class DataUtils:
     summary_msgs = ""
     for index, message in enumerate(messages):
       if message["role"] == "user":
+        print(message["content"])
         if index == 1:
           break
         summary_msgs += message["content"]
@@ -186,7 +187,7 @@ class DataUtils:
     prompt = """ The user's question should be summarized into five words or less. 
           No explanation or elaboration. 
           Response needs to be five words or less, no punctuation.
-          No code snippets. Just summarize concepts in words."""
+          No code snippets. Just summarize the request simply."""
     summary = [{
       "role": "system",
       "content": f"{prompt}"
