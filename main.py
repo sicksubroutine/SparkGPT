@@ -1,7 +1,12 @@
-from flask import render_template, session, request, redirect, send_file, jsonify, Response, g
+from flask import render_template, session, request, redirect, send_file,jsonify
+from flask import Response, g
 from flask_socketio import SocketIO
-import os, markdown, qrcode, random, logging
 from tools import DataUtils, ChatUtils, BitcoinUtils, app
+import os 
+import markdown 
+import qrcode 
+import random 
+import logging
 
 logging.basicConfig(filename='logfile.log', level=logging.error)
 
@@ -141,7 +146,7 @@ def login():
   if len(request.form) == 0:
     return redirect("/")
   else:
-    if not username or username == None:
+    if not username or username is None:
       d_base = g.d_base
       users = d_base.get_all_users()
       for user in users:
@@ -199,13 +204,16 @@ def chat():
     messages.append(dict)
   for message in messages:
     if message["role"] != "system":
-      message["content"] = markdown.markdown(message["content"], extensions=['fenced_code'])
+      message["content"] = markdown.markdown(
+                          message["content"], 
+                          extensions=['fenced_code']
+    )
   # sats code
   sats = session.get("sats")
   user = d_base.get_user(username)
   database_sats = user["sats"]
   recently_paid = user["recently_paid"]
-  if sats == None:
+  if sats is None:
     d_base.update_user(username, "sats", 0)
     session["sats"] = 0
     return render_template("pay.html", username=username)
@@ -242,13 +250,15 @@ def respond():
   messages = []
   for dict in msg:
     messages.append(dict)
-  messages = [{k: v for k, v in d.items() if k in ['role','content']} for d in messages ]
+  messages = [{k: v for k, v in d.items() if k in ['role','content']} 
+              for d in messages
+  ]
   if request.method == 'POST':
     message = request.form.get("message")
     message_estimate = ChatUtils.estimate_tokens(message)
     session["message_estimate"] = message_estimate
     previous_token_usage = session.get("token_usage")
-    if previous_token_usage != None and message_estimate != None:
+    if previous_token_usage is not None and message_estimate is not None:
       total_tokens = previous_token_usage + message_estimate
       logging.debug(f"Token Estimation: {message_estimate}")
       pre_cost = BitcoinUtils.get_bitcoin_cost(total_tokens, model)
