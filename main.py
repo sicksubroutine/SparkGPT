@@ -136,7 +136,7 @@ def login():
     convo = d_base.get_conversation(convo_id)
     prompt = convo["prompt"]
     if prompt != "CustomPrompt":
-      prompt_dict = DataUtils.prompt_get(prompt)
+      prompt_dict = ChatUtils.prompt_get(prompt)
       title = prompt_dict["title"]
       session["title"] = title
     else:
