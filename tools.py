@@ -6,18 +6,16 @@ logging.basicConfig(filename='logfile.log', level=logging.INFO)
 
 API_KEY = os.environ['LNBITS_API']
 URL = "https://legend.lnbits.com/api/v1/payments/"
-HEADERS = {
-  "X-Api-Key": API_KEY, 
-  "Content-Type": "application/json"
-}
+HEADERS = {"X-Api-Key": API_KEY, "Content-Type": "application/json"}
 SATS = 0.00000001
 SECRETKEY = os.environ['GPT-API']
 openai.api_key = f"{SECRETKEY}"
 
+
 class DataUtils:
 
   @staticmethod
-  def api_request(method: str, url:str, **kwargs: dict) -> tuple:
+  def api_request(method: str, url: str, **kwargs: dict) -> tuple:
     """
     Sends an API request to the given URL using the given HTTP method and keyword arguments.
 
@@ -36,13 +34,14 @@ class DataUtils:
     try:
       response = requests.request(method, url, **kwargs)
       if not response.ok:
-        raise Exception(f"API request failed with status code {response.status_code}.")
+        raise Exception(
+          f"API request failed with status code {response.status_code}.")
       response_json = response.json()
       return response, response_json
     except Exception as e:
       logging.error(f"API request failed: {e}")
       return None, None
-  
+
   @staticmethod
   def random_token() -> str:
     """
@@ -118,11 +117,10 @@ class DataUtils:
     """
     path = "static/markdown/"
     if not os.path.exists(path):
-        os.makedirs(path)
+      os.makedirs(path)
     for filename in os.listdir(path):
-        if filename.endswith(".md"):
-            os.remove(path + filename)
-
+      if filename.endswith(".md"):
+        os.remove(path + filename)
 
   @staticmethod
   def clean_up_invoices() -> None:
@@ -133,8 +131,8 @@ class DataUtils:
     """
     path = "static/qr/"
     for filename in os.listdir(path):
-        if filename.endswith(".png"):
-            os.remove(path + filename)
+      if filename.endswith(".png"):
+        os.remove(path + filename)
 
   @staticmethod
   def summary_of_messages(convo: str) -> tuple:
@@ -185,7 +183,7 @@ class DataUtils:
     return longer_response, response
 
   @staticmethod
-  def export_as_markdown(convo:str, title:str, model:str) -> str:
+  def export_as_markdown(convo: str, title: str, model: str) -> str:
     """
     Exports a conversation as a Markdown file.
 
@@ -223,10 +221,11 @@ class DataUtils:
       f.write(markdown)
     return path_filename
 
+
 class ChatUtils:
 
   @staticmethod
-  def prompt_get(prompt:str) -> dict:
+  def prompt_get(prompt: str) -> dict:
     """
     Retrieves a prompt and its associated title based on the given prompt key.
 
@@ -243,46 +242,46 @@ class ChatUtils:
       If the given prompt key is invalid, a default invalid prompt and title will be returned.
     """
     prompt_dict = {
-        "prompt4chan": {
-            "prompt": os.environ['4CHANPROMPT'],
-            "title": "4Chan AI"
-        },
-        "IFSPrompt": {
-            "prompt": os.environ['IFSPROMPT'],
-            "title": "IFS AI"
-        },
-        "KetoPrompt": {
-            "prompt": os.environ['KETOPROMPT'],
-            "title": "Keto AI"
-        },
-        "PythonPrompt": {
-            "prompt": os.environ['PYTHONPROMPT'],
-            "title": "Python AI"
-        },
-        "TherapistPrompt": {
-            "prompt": os.environ['THERAPISTPROMPT'],
-            "title": "Therapist AI"
-        },
-        "foodMenuPrompt": {
-            "prompt": os.environ['FOODMENUPROMPT'],
-            "title": "Food Menu AI"
-        },
-        "HelpfulPrompt": {
-            "prompt": os.environ['HELPFULPROMPT'],
-            "title": "General AI"
-        },
-        "AI_Talks_To_Self": {
-            "prompt": os.environ['TALKTOSELFPROMPT'],
-            "title": "Recursive AI"
-        },
+      "prompt4chan": {
+        "prompt": os.environ['4CHANPROMPT'],
+        "title": "4Chan AI"
+      },
+      "IFSPrompt": {
+        "prompt": os.environ['IFSPROMPT'],
+        "title": "IFS AI"
+      },
+      "KetoPrompt": {
+        "prompt": os.environ['KETOPROMPT'],
+        "title": "Keto AI"
+      },
+      "PythonPrompt": {
+        "prompt": os.environ['PYTHONPROMPT'],
+        "title": "Python AI"
+      },
+      "TherapistPrompt": {
+        "prompt": os.environ['THERAPISTPROMPT'],
+        "title": "Therapist AI"
+      },
+      "foodMenuPrompt": {
+        "prompt": os.environ['FOODMENUPROMPT'],
+        "title": "Food Menu AI"
+      },
+      "HelpfulPrompt": {
+        "prompt": os.environ['HELPFULPROMPT'],
+        "title": "General AI"
+      },
+      "AI_Talks_To_Self": {
+        "prompt": os.environ['TALKTOSELFPROMPT'],
+        "title": "Recursive AI"
+      },
     }
     return prompt_dict.get(prompt, {
-        'prompt': 'Invalid Prompt',
-        'title': 'Invalid title'
+      'prompt': 'Invalid Prompt',
+      'title': 'Invalid title'
     })
 
   @staticmethod
-  def openai_response(messages: list, model:str="gpt-3.5-turbo") -> tuple:
+  def openai_response(messages: list, model: str = "gpt-3.5-turbo") -> tuple:
     """
     Sends messages to the OpenAI assistant and retrieves the assistant's response.
 
@@ -342,7 +341,7 @@ class ChatUtils:
     return assistant_response, token_usage
 
   @staticmethod
-  def estimate_tokens(text:str, method:str="max") -> int|None:
+  def estimate_tokens(text: str, method: str = "max") -> int | None:
     """
     Estimates the number of tokens required to process the given text.
 
@@ -364,15 +363,16 @@ class ChatUtils:
     tokens_count_per_word_est = word_count / 0.6
     tokens_count_char_est = char_count / 4.0
     methods = {
-        "average": lambda a, b: (a + b) / 2,
-        "words": lambda a, b: a,
-        "chars": lambda a, b: b,
-        "max": max,
-        "min": min
+      "average": lambda a, b: (a + b) / 2,
+      "words": lambda a, b: a,
+      "chars": lambda a, b: b,
+      "max": max,
+      "min": min
     }
     if method not in methods:
-        logging.error("Invalid method. Use 'average', 'words', 'chars', 'max', or 'min'.")
-        return None
+      logging.error(
+        "Invalid method. Use 'average', 'words', 'chars', 'max', or 'min'.")
+      return None
     output = methods[method](tokens_count_per_word_est, tokens_count_char_est)
     return int(output) + 5
 
@@ -380,7 +380,7 @@ class ChatUtils:
 class BitcoinUtils:
 
   @staticmethod
-  def get_bitcoin_cost(tokens: int, model:str="gpt-3.5-turbo") -> int:
+  def get_bitcoin_cost(tokens: int, model: str = "gpt-3.5-turbo") -> int:
     """
     Calculates the cost of generating the given number of tokens in Bitcoin.
 
@@ -403,18 +403,17 @@ class BitcoinUtils:
         cost = 0.0099  # chatgpt per 1k tokens
       elif model == "gpt-4":
         cost = 0.10  # gpt4 per 1k tokens
-      response, response_json = DataUtils.api_request("GET", "https://api.kraken.com/0/public/Ticker?pair=xbtusd")
-      #response = requests.get("https://api.kraken.com/0/public/Ticker?pair=xbtusd")
-      #response_json = response.json()["result"]["XXBTZUSD"]["c"]
-      price = round(((tokens / 1000) * cost / round(float(response_json[0]))) / SATS)
+      response, response_json = DataUtils.api_request(
+        "GET", "https://api.kraken.com/0/public/Ticker?pair=xbtusd")
+      data = response_json["result"]["XXBTZUSD"]["c"]
+      price = round(((tokens / 1000) * cost / round(float(data[0]))) / SATS)
       return price
     except Exception as e:
       logging.error(f"Failed to calculate Bitcoin cost: {e}")
       return None
 
-
   @staticmethod
-  def get_lightning_invoice(sats:str, memo:str) -> dict|None:
+  def get_lightning_invoice(sats: str, memo: str) -> dict | None:
     """
     Generates a Lightning invoice for the given amount of Satoshis.
 
@@ -438,7 +437,10 @@ class BitcoinUtils:
       "webhook": "https://chatgpt-flask-app.thechaz.repl.co/webhook"
     }
     try:
-      response, response_json = DataUtils.api_request("POST", URL, headers=HEADERS, json=data)
+      response, response_json = DataUtils.api_request("POST",
+                                                      URL,
+                                                      headers=HEADERS,
+                                                      json=data)
       if not response.ok:
         raise Exception("Error:", response.status_code, response.reason)
       return response_json
@@ -465,7 +467,9 @@ class BitcoinUtils:
     """
     try:
       url = f"{URL}{payment_hash}"
-      response, response_json = DataUtils.api_request("GET", url, headers=HEADERS)
+      response, response_json = DataUtils.api_request("GET",
+                                                      url,
+                                                      headers=HEADERS)
       if not response.ok:
         raise Exception("Error:", response.status_code, response.reason)
       return response_json.get("paid")
