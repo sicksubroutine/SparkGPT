@@ -11,7 +11,6 @@ import logging
 logging.basicConfig(filename='logfile.log', level=logging.error)
 
 ## TODO: Add more prompts.
-## TODO: Make the front page look better.
 ## TODO: Make the chat app look better across different interfaces. Responsive.
 ## TODO: Consider adding a way to login with the Lightning Network.
 ## LNURL-AUTH : https://github.com/lnurl/luds/blob/luds/04.md

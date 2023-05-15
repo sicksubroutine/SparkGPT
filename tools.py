@@ -200,8 +200,15 @@ class DataUtils:
     longer_response = response
     response = response.split()
     response = "_".join(response)
+    # replace punctuation with empty string
     response = response.replace(".", "")
     response = response.replace(",", "")
+    response = response.replace("`", "")
+    response = response.replace("@", "")
+    response = response.replace("#", "")
+    response = response.replace("$", "")
+    response = response.replace("%", "")
+    response = response.replace("^", "")
     return longer_response, response
 
   @staticmethod
