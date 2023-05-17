@@ -15,7 +15,7 @@ API_KEY = os.environ['LNBITS_API']
 URL = "https://legend.lnbits.com/api/v1/payments/"
 HEADERS = {"X-Api-Key": API_KEY, "Content-Type": "application/json"}
 SATS = 0.00000001
-SECRETKEY = os.environ['GPT-API']
+SECRETKEY = os.environ['GPT_API']
 openai.api_key = f"{SECRETKEY}"
 
 
@@ -284,9 +284,9 @@ class ChatUtils:
         "prompt": os.environ['KETOPROMPT'],
         "title": "Keto AI"
       },
-      "PythonPrompt": {
-        "prompt": os.environ['PYTHONPROMPT'],
-        "title": "Python AI"
+      "CodingBuddy": {
+        "prompt": os.environ['CODINGBUDDYPROMPT'],
+        "title": "Coding Buddy AI"
       },
       "TherapistPrompt": {
         "prompt": os.environ['THERAPISTPROMPT'],
