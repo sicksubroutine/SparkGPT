@@ -8,4 +8,5 @@ A relatively simple ChatGPT app using the ChatGPT API and LNBits API to accept B
 * A chat interface that includes the ability to easily delete individual messages, reset the chat entirely, and download the conversation history to a markdown file.
 * Filename of the markdown file is ChatGPT generated based upon your initial message.
 * Ability to have multiple concurrent chats going at the same time. Front page will have a small summary of the ongoing chat as well as the current prompt being used.
-NOTE: Featurelist is old and I'm too lazy in the short term to update it. I'll do it eventually.
+* Ability to change between GPT3.5 TURBO and GPT 4.
+* Syntax highlighting with Prism JS for code blocks that might occur.

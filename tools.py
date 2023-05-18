@@ -274,27 +274,27 @@ class ChatUtils:
     prompt_dict = {
       "prompt4chan": {
         "prompt": os.environ['4CHANPROMPT'],
-        "title": "4Chan AI"
+        "title": "4Chan Green Text"
       },
       "IFSPrompt": {
         "prompt": os.environ['IFSPROMPT'],
-        "title": "IFS AI"
+        "title": "Internal Family Systems AI"
       },
       "KetoPrompt": {
         "prompt": os.environ['KETOPROMPT'],
-        "title": "Keto AI"
+        "title": "Keto Helper"
       },
       "CodingBuddy": {
         "prompt": os.environ['CODINGBUDDYPROMPT'],
-        "title": "Coding Buddy AI"
+        "title": "Coding Buddy"
       },
       "TherapistPrompt": {
         "prompt": os.environ['THERAPISTPROMPT'],
-        "title": "Therapist AI"
+        "title": "Therapist Bot"
       },
       "foodMenuPrompt": {
         "prompt": os.environ['FOODMENUPROMPT'],
-        "title": "Food Menu AI"
+        "title": "Menu Assistant 8000"
       },
       "HelpfulPrompt": {
         "prompt": os.environ['HELPFULPROMPT'],

@@ -124,7 +124,7 @@ class DatabaseManager:
     self.conn.execute("DELETE FROM messages WHERE conversation_id=? AND id!=?", 
                       (conversation_id, system_message[0]))
     self.conn.commit()
-    # do the same for the conversation_history
+    
     cursor.execute("""SELECT * FROM conversation_history 
                   WHERE conversation_id=? AND role=?""", (conversation_id, 'system'))
     system_message = cursor.fetchone()
