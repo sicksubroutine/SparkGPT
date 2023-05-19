@@ -9,7 +9,7 @@ import qrcode
 import random 
 import logging
 
-logging.basicConfig(filename='logfile.log', level=logging.error)
+logging.basicConfig(filename='logfile.log', level=logging.ERROR)
 
 ## TODO: Improve current prompts.
 ## TODO: Make the chat app look better across different interfaces. Responsive.
@@ -37,6 +37,8 @@ def index():
 def get_invoice():
   try:
     sats = request.args.get('sats')
+    if sats is None:
+      raise Exception("No sats provided.")
     memo = f"Payment for {sats} Sats"
     session.pop("payment_request", None)
     session.pop("payment_hash", None)
@@ -74,6 +76,9 @@ def qrcode_gen() -> str:
 @app.route("/webhook", methods=["POST"])
 def webhook():
   data = request.json
+  if data is None:
+    logging.error("No data received.")
+    return "OK"
   payment_hash = data.get("payment_hash")
   paid = BitcoinUtils.payment_check(payment_hash)
   if paid:
@@ -116,6 +121,8 @@ def login():
   if request.method == 'POST':
     if 'prompt' in request.form:
       prompt = request.form.get("prompt")
+      if prompt is None:
+        raise Exception("No prompt provided.")
       model = request.form.get("model")
       prompt_dict = ChatUtils.prompt_get(prompt)
       chosen_prompt = prompt_dict["prompt"]
@@ -245,6 +252,8 @@ def respond():
   username = session["username"]
   convo = session.get("convo")
   model = session.get("model")
+  if model is None:
+    model = "gpt-3.5-turbo"
   d_base = g.d_base
   msg = d_base.get_messages(convo)
   messages = []
@@ -255,6 +264,8 @@ def respond():
   ]
   if request.method == 'POST':
     message = request.form.get("message")
+    if message is None:
+      return jsonify({"response": ""})
     message_estimate = ChatUtils.estimate_tokens(message)
     session["message_estimate"] = message_estimate
     previous_token_usage = session.get("token_usage")

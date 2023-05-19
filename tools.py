@@ -81,7 +81,7 @@ class DataUtils:
       return request.headers.get('X-Forwarded-For', '').split(',')[0].strip()
     except Exception as e:
       logging.error(f"Failed to get IP Address: {e}")
-      return None
+      return "Erroring getting IP Address"
 
   @staticmethod
   def uuid_func() -> str:
@@ -345,26 +345,26 @@ class ChatUtils:
       try:
         logging.info("Attempting to send message to assistant...")
         response = openai.ChatCompletion.create(model=model, messages=messages)
-        assistant_response = response["choices"][0]["message"]["content"]
-        token_usage = response["usage"]["total_tokens"]
-        logging.info(response["usage"])
+        assistant_response = response["choices"][0]["message"]["content"] # type: ignore
+        token_usage = response["usage"]["total_tokens"] # type: ignore
+        logging.info(response["usage"]) # type: ignore
         retry = False
         break
-      except openai.error.APIError as e:
+      except openai.error.APIError as e: # type: ignore
         logging.error(f"OpenAI API returned an API Error: {e}")
         retry_count += 1
         if retry_count >= max_retries:
           retry = False
           break
         time.sleep(backoff_time * 2**retry_count)
-      except openai.error.APIConnectionError as e:
+      except openai.error.APIConnectionError as e: # type: ignore
         logging.error(f"Failed to connect to OpenAI API: {e}")
         retry_count += 1
         if retry_count >= max_retries:
           retry = False
           break
         time.sleep(backoff_time * 2**retry_count)
-      except openai.error.RateLimitError as e:
+      except openai.error.RateLimitError as e: # type: ignore
         logging.error(f"OpenAI API request exceeded rate limit: {e}")
         retry_count += 1
         if retry_count >= max_retries:
@@ -413,7 +413,7 @@ class ChatUtils:
 class BitcoinUtils:
 
   @staticmethod
-  def get_bitcoin_cost(tokens: int, model: str = "gpt-3.5-turbo") -> int:
+  def get_bitcoin_cost(tokens: int, model: str = "gpt-3.5-turbo") -> int|None:
     """
     Calculates the cost of generating the given number of tokens in Bitcoin.
 
@@ -433,10 +433,10 @@ class BitcoinUtils:
       - The cost is rounded to the nearest whole number of Satoshis (0.00000001 BTC).
     """
     try:
-      if model == "gpt-3.5-turbo":
-        cost = 0.0099  # chatgpt per 1k tokens
-      elif model == "gpt-4":
+      if model == "gpt-4":
         cost = 0.10  # gpt4 per 1k tokens
+      else:
+        cost = 0.0099  # chatgpt per 1k tokens
       response, response_json = DataUtils.api_request(
         "GET", "https://api.kraken.com/0/public/Ticker?pair=xbtusd")
       data = response_json["result"]["XXBTZUSD"]["c"]
@@ -447,7 +447,7 @@ class BitcoinUtils:
       return None
 
   @staticmethod
-  def get_lightning_invoice(sats: str, memo: str) -> dict | None:
+  def get_lightning_invoice(sats: str, memo: str) -> dict:
     """
     Generates a Lightning invoice for the given amount of Satoshis.
 
@@ -471,16 +471,18 @@ class BitcoinUtils:
       "webhook": "https://chatgpt-flask-app.thechaz.repl.co/webhook"
     }
     try:
-      response, response_json = DataUtils.api_request("POST", 
-                                                      URL, 
-                                                      headers=HEADERS, 
-                                                      json=data)
+      response, response_json = DataUtils.api_request(
+        "POST", 
+        URL, 
+        headers=HEADERS, 
+        json=data
+      )
       if not response.ok:
         raise Exception("Error:", response.status_code, response.reason)
       return response_json
     except Exception as e:
       logging.error(f"Failed to generate Lightning invoice: {e}")
-      return None
+      return {"Error": "Error generating Lightning invoice."}
 
   @staticmethod
   def payment_check(payment_hash) -> bool:
