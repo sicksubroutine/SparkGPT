@@ -9,6 +9,10 @@ import qrcode
 import random 
 import logging
 
+if os.path.exists(".env"):
+  from dotenv import load_dotenv
+  load_dotenv()
+
 logging.basicConfig(filename='logfile.log', level=logging.ERROR)
 
 ## TODO: Improve current prompts.

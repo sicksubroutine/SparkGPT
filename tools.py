@@ -438,7 +438,9 @@ class BitcoinUtils:
       else:
         cost = 0.0099  # chatgpt per 1k tokens
       response, response_json = DataUtils.api_request(
-        "GET", "https://api.kraken.com/0/public/Ticker?pair=xbtusd")
+        "GET", 
+        "https://api.kraken.com/0/public/Ticker?pair=xbtusd"
+      )
       data = response_json["result"]["XXBTZUSD"]["c"]
       price = round(((tokens / 1000) * cost / round(float(data[0]))) / SATS)
       return price
@@ -503,9 +505,11 @@ class BitcoinUtils:
     """
     try:
       url = f"{URL}{payment_hash}"
-      response, response_json = DataUtils.api_request("GET",
-                                                      url,
-                                                      headers=HEADERS)
+      response, response_json = DataUtils.api_request(
+        "GET",
+        url,
+        headers=HEADERS
+      )
       if not response.ok:
         raise Exception("Error:", response.status_code, response.reason)
       return response_json.get("paid")

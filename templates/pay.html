@@ -63,7 +63,7 @@ invoiceForm.addEventListener("submit", (event) => {
         .then(data => {
             qrCodeDiv.innerHTML = "";
             const image = document.createElement("img");
-          console.log(data.payment_request);
+          //console.log(data.payment_request);
             fetch(`/qrcode_gen?payment_request=${encodeURIComponent(data.payment_request)}`)
                 .then(response => response.text())
                 .then(qrCodeImagePath => {

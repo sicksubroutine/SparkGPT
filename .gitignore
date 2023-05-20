@@ -7,6 +7,7 @@
 *.pickle
 *.db
 __pycache__/
+.env
 
 venv/
 markdown/
