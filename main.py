@@ -110,7 +110,7 @@ def payment_updates():
     data = 'data: {"status": "not paid"}\n\n'
   return Response(data, content_type='text/event-stream')
 
-
+#FIXME: Fix the logic here. Too many if statements.
 @app.route('/login', methods=['POST', 'GET'])
 def login():
   ip_address = DataUtils.get_IP_Address(request)
@@ -174,13 +174,13 @@ def login():
         d_base.insert_user(username, ip_address, uuid, user_agent,
                            identity_hash)
         user = d_base.get_user(username)
-        convo = d_base.insert_conversation(username, prompt, chosen_prompt)
+        convo = d_base.insert_conversation(username, prompt, chosen_prompt) # type: ignore
         session["convo"] = convo["conversation_id"]
         return redirect("/chat")
     else:
       if session.get("username") and session.get("identity_hash"):
         d_base = g.d_base
-        convo = d_base.insert_conversation(username, prompt, chosen_prompt)
+        convo = d_base.insert_conversation(username, prompt, chosen_prompt) # type: ignore
         session["convo"] = convo["conversation_id"]
       return redirect("/chat")
 
@@ -212,14 +212,15 @@ def chat():
   for message in messages:
     if message["role"] != "system":
       message["content"] = markdown.markdown(
-                          message["content"], 
-                          extensions=['fenced_code']
+      message["content"], 
+      extensions=['fenced_code']
     )
   # sats code
   sats = session.get("sats")
   user = d_base.get_user(username)
   database_sats = user["sats"]
   recently_paid = user["recently_paid"]
+  #TODO: Seperate this into a seperate function.
   if sats is None:
     d_base.update_user(username, "sats", 0)
     session["sats"] = 0
@@ -243,7 +244,7 @@ def chat():
                          token_left=sats,
                          model=session.get("model"))
 
-
+#FIXME: This is a mess, needs to be cleaned up.
 @app.route("/respond", methods=["POST"])
 def respond():
   if not session.get("username"):
@@ -255,12 +256,17 @@ def respond():
   if model is None:
     model = "gpt-3.5-turbo"
   d_base = g.d_base
+  sats = d_base.get_user(username)["sats"]
+  if sats <= 0:
+    session["force_buy"] = True
+    return jsonify({"response": ""})
   msg = d_base.get_messages(convo)
   messages = []
   for dict in msg:
     messages.append(dict)
-  messages = [{k: v for k, v in d.items() if k in ['role','content']} 
-              for d in messages
+  messages = [{
+    k: v for k, v in d.items() if k in ['role','content']} 
+    for d in messages
   ]
   if request.method == 'POST':
     message = request.form.get("message")
@@ -272,10 +278,9 @@ def respond():
     if previous_token_usage is not None and message_estimate is not None:
       total_tokens = previous_token_usage + message_estimate
       logging.debug(f"Token Estimation: {message_estimate}")
+      # check to see if cost is likely to exceed balance.
       pre_cost = BitcoinUtils.get_bitcoin_cost(total_tokens, model)
-      sats = d_base.get_user(username)["sats"]
       if pre_cost > sats:
-        # check to see if cost is likely to exceed balance.
         logging.info(f"{pre_cost} sats cost is more than {sats} sats balance")
         session["force_buy"] = True
         return jsonify({"response": ""})
@@ -286,7 +291,10 @@ def respond():
   session["token_usage"] = token_usage
   # sats code, getting cost in sats
   cost = BitcoinUtils.get_bitcoin_cost(token_usage, model)
-  sats = session.get("sats") - cost
+  session_sats = session.get("sats")
+  if session_sats is None:
+    return jsonify({"response": ""})
+  sats = session_sats - cost
   session["sats"] = sats
   d_base.update_user(username, "sats", sats)
   if token_usage > TOKEN_LIMIT:
@@ -345,7 +353,7 @@ def export_messages():
   convo = session["convo"]
   title = session.get("title")
   model = session.get("model")
-  path_filename = DataUtils.export_as_markdown(convo, title, model)
+  path_filename = DataUtils.export_as_markdown(convo, title, model) # type: ignore
   return send_file(path_filename, as_attachment=True)
 
 @app.route("/logout")
