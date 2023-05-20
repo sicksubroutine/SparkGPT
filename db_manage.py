@@ -24,6 +24,8 @@ class DatabaseManager:
         CREATE TABLE IF NOT EXISTS conversations (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           username TEXT,
+          model TEXT,
+          title TEXT,
           prompt TEXT,
           summary TEXT DEFAULT '',
           short_summary TEXT DEFAULT '',
@@ -77,7 +79,9 @@ class DatabaseManager:
   def get_all_users(self):
     cursor = self.conn.cursor()
     cursor.execute("SELECT * FROM users")
-    return cursor.fetchall()
+    rows = cursor.fetchall()
+    columns = [col[0] for col in cursor.description]
+    return [dict(zip(columns, row)) for row in rows]
 
   def update_user(self, username, field, value):
     self.conn.execute(f"UPDATE users SET {field}=? WHERE username=?",
@@ -88,24 +92,29 @@ class DatabaseManager:
     self.conn.execute("DELETE FROM users WHERE username=?", (username, ))
     self.conn.commit()
 
-  def insert_conversation(self, username, prompt, chosen_prompt):
+  def insert_conversation(self, username, model, title, prompt, prompt_text):
       
         cursor = self.conn.cursor()
-        cursor.execute("INSERT INTO conversations (username, prompt) VALUES (?, ?)", 
-                       (username, prompt))
+        cursor.execute(
+          """
+          INSERT INTO conversations 
+          (username, model, title, prompt) VALUES (?, ?, ?, ?)
+          """, 
+          (username, model, title, prompt)
+        )
         conversation_id = cursor.lastrowid
         self.conn.commit()
 
         cursor.execute("""INSERT INTO conversation_history 
                       (conversation_id, role, content) 
                        VALUES (?, ?, ?)""",
-                       (conversation_id, 'system', chosen_prompt))
+                       (conversation_id, 'system', prompt_text))
         conversation_history_id = cursor.lastrowid
         self.conn.commit()
 
         cursor.execute("""INSERT INTO messages (conversation_id, role, content) 
                       VALUES (?, ?, ?)""",
-                       (conversation_id, 'system', chosen_prompt))
+                       (conversation_id, 'system', prompt_text))
         message_id = cursor.lastrowid
         self.conn.commit()
 
@@ -212,13 +221,15 @@ class DatabaseManager:
     columns = [col[0] for col in cursor.description]
     return [dict(zip(columns, row)) for row in rows]
 
-  def insert_payment(self, 
-                     username, 
-                     amount, 
-                     memo, 
-                     payment_request, 
-                     payment_hash, 
-                     invoice_status):
+  def insert_payment(
+    self, 
+    username, 
+    amount, 
+    memo, 
+    payment_request, 
+    payment_hash, 
+    invoice_status
+    ):
     self.conn.execute(
         '''
         INSERT INTO payments 

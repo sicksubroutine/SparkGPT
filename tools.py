@@ -304,6 +304,10 @@ class ChatUtils:
         "prompt": os.environ['TALKTOSELFPROMPT'],
         "title": "Recursive AI"
       },
+      "CustomPrompt": {
+        "prompt": "",
+        "title": "Custom Prompt"
+      }
     }
     return prompt_dict.get(prompt, {
       'prompt': 'Invalid Prompt',
