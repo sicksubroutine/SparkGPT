@@ -4,7 +4,7 @@
   },
   "scripts": {
     "create-css": "npx tailwindcss -i ./static/src/input.css -o ./static/css/main.css",
-    "run-python": "npx tailwindcss -i ./static/src/input.css -o ./static/css/main.css && python3 ./main.py",
+    "run-python": "npx tailwindcss -i ./static/src/input.css -o ./static/css/main.css && source venv/bin/activate && python3 ./main.py",
     "dev": "SESSIONKEY=abc123 LNBITS_API=abc123 GPT_API=abc123 nodemon --exec npm run run-python"
   },
   "devDependencies": {

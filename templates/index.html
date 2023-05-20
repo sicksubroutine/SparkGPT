@@ -26,9 +26,8 @@
           window.location.host +
           window.location.pathname;
         window.history.replaceState({ path: newUrl }, "", newUrl);
-        document.getElementById("black-box").style.display = "none";
         document.getElementById("error").style.display = "none";
-      }, 3000);
+      }, 5000);
     </script>
     {% endif %}
 
@@ -56,9 +55,9 @@
             <div class="px-4 py-5 sm:px-6 bg-gray-800 mb-4 rounded-md">
               <h3 class="text-lg leading-6 font-medium text-white">
                 <a
-                  href="/login?conversation={{ conversation.id }}"
+                  href="/convo_open?conversation={{ conversation.id }}"
                   class="text-indigo-600 hover:text-indigo-900"
-                  >{{ conversation.prompt }}</a
+                  >{{ conversation.title }}</a
                 >
               </h3>
               <p class="mt-2 max-w-2xl text-sm text-gray-500">
@@ -79,9 +78,18 @@
           <section class="w-1/2 m-auto">
             <header class="p-4">
               <h1 class="text-2xl text-center">SparkGPT</h1>
+              {% if text %}
+                <div
+                  class="col-start-2 col-span-2 w-full px-4 py-5 sm:px-6 text-center"
+                >
+                  <div id="black-box">
+                    <span class="text-red-500" id="error">{{ text }}</span>
+                </div>
+              </div>
+            {% endif %}
             </header>
             <div class="max-w-md w-full space-y-8">
-              <form action="/login" method="post" class="mt-8 space-y-6">
+              <form action="/prompt" method="post" class="mt-8 space-y-6">
                 <div class="rounded-md shadow-sm -space-y-px">
                   <div>
                     <p>Choose a prompt:</p>
@@ -89,7 +97,7 @@
                     <select
                       name="prompt"
                       class="block w-full mt-1 rounded-md bg-gray-100 border-transparent focus:border-gray-500 focus:bg-white focus:ring-0 text-gray-900"
-                    >
+                      >
                       <option value="HelpfulPrompt">General AI</option>
                       <option value="CodingBuddy">Coding Buddy AI</option>
                       <option value="TherapistPrompt">Therapist Bot</option>
@@ -123,14 +131,16 @@
               <hr
                 class="overflow-visible h-1 text-center after:top-[-13px] after:relative after:px-1 after:bg-gray-900 after:content-['OR'] border-t-1 border-gray-700"
               />
-              <form action="/login" method="post" class="mt-8 space-y-6">
+              <form action="/custom_prompt" method="post" class="mt-8 space-y-6">
                 <textarea
                   type="text"
-                  name="custom_prompt"
+                  name="prompt"
                   id="text"
-                  class="mt-1 block w-full rounded-md bg-gray-100 border-transparent focus:border-gray-500 focus:bg-white focus:ring-0"
+                  class="text-black mt-1 block w-full rounded-md bg-gray-100 border-transparent focus:border-gray-500 focus:bg-white focus:ring-0"
                   placeholder="Enter a custom prompt..."
+                  required
                 ></textarea>
+                <input type="hidden" name="custom_prompt" value="true">
                 <div class="mt-4">
                   <label for="model" class="sr-only">Choose a model:</label>
                   <select
@@ -152,15 +162,7 @@
           </section>
         </div>
 
-        {% if text %}
-        <div
-          class="col-start-2 col-span-2 w-full px-4 py-5 sm:px-6 text-center"
-        >
-          <div id="black-box">
-            <span class="reset-text" id="error">{{ text }}</span>
-          </div>
-        </div>
-        {% endif %}
+        
       </main>
     </div>
   </body>

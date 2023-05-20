@@ -9,17 +9,20 @@ import qrcode
 import random 
 import logging
 
+logging.basicConfig(filename='logfile.log', level=logging.ERROR)
+
 if os.path.exists(".env"):
   from dotenv import load_dotenv
   load_dotenv()
-
-logging.basicConfig(filename='logfile.log', level=logging.ERROR)
+  logging.debug("Loading .env file.")
+else:
+  logging.debug("Not loading .env file.")
 
 ## TODO: Improve current prompts.
 ## TODO: Make the chat app look better across different interfaces. Responsive.
 ## TODO: Consider adding a way to login with the Lightning Network.
-## LNURL-AUTH : https://github.com/lnurl/luds/blob/luds/04.md
-## TODO: Add ability to change AI models, mostly complete.
+## NOTE: LNURL-AUTH : https://github.com/lnurl/luds/blob/luds/04.md
+## TODO: Create basic auth with username and password or possibly a single string.
 
 TOKEN_LIMIT = 3000
 socketio = SocketIO(app)
@@ -29,10 +32,12 @@ def index():
   text = request.args.get("t")
   conv = {}
   if session.get("username") and session.get("identity_hash"):
+    session["sats"] = 10000
     username = session["username"]
     d_base = g.d_base
     conv = d_base.get_conversations_for_user(username)
     users = d_base.get_all_users()
+    d_base.update_user(username, "sats", session["sats"])
     logging.info(f"Number of users: {len(users)}")
   return render_template("index.html", text=text, conversations=conv)
 
@@ -82,6 +87,7 @@ def webhook():
   data = request.json
   if data is None:
     logging.error("No data received.")
+    DataUtils.clean_up_invoices()
     return "OK"
   payment_hash = data.get("payment_hash")
   paid = BitcoinUtils.payment_check(payment_hash)
@@ -114,79 +120,106 @@ def payment_updates():
     data = 'data: {"status": "not paid"}\n\n'
   return Response(data, content_type='text/event-stream')
 
-#FIXME: Fix the logic here. Too many if statements.
-@app.route('/login', methods=['POST', 'GET'])
+
+@app.route("/custom_prompt", methods=["POST"])
+def custom_prompt():
+  model = request.form["model"]
+  session["custom_prompt"] = request.form["prompt"]
+  session["title"] = "Custom Prompt"
+  session["prompt"] = "CustomPrompt"
+  session["model"] = model
+  return redirect("/login?custom_prompt=True")
+  
+@app.route("/prompt", methods=["POST"])
+def prompt():
+  model = request.form["model"]
+  prompt = request.form["prompt"]
+  prompt_dict = ChatUtils.prompt_get(prompt)
+  session["title"] = prompt_dict["title"]
+  session["prompt"] = prompt
+  session["model"] = model
+  return redirect("/login?custom_prompt=False")
+
+@app.route("/convo_open", methods=["GET"])
+def convo_open():
+  d_base = g.d_base
+  convo_id = request.args.get("conversation")
+  convo = d_base.get_conversation(convo_id)
+  prompt = convo["prompt"]
+  if prompt == "CustomPrompt":
+    custom_prompt = True
+  else:
+    custom_prompt = False
+  session["title"] = convo["title"]
+  session["prompt"] = convo["prompt"]
+  session["model"] = convo["model"]
+  session["convo"] = convo_id
+  return redirect(f"/login?custom_prompt={custom_prompt}&convo=True")
+
+
+@app.route('/login', methods=['GET'])
 def login():
-  ip_address = DataUtils.get_IP_Address(request)
+  d_base = g.d_base
   uuid = DataUtils.uuid_func()
+  ip_address = DataUtils.get_IP_Address(request)
   user_agent = request.headers.get('User-Agent')
   username = session.get('username')
-  identity_hash = DataUtils.hash_func(ip_address, uuid, user_agent)
-  if request.method == 'POST':
-    if 'prompt' in request.form:
-      prompt = request.form.get("prompt")
-      if prompt is None:
-        raise Exception("No prompt provided.")
-      model = request.form.get("model")
-      prompt_dict = ChatUtils.prompt_get(prompt)
-      chosen_prompt = prompt_dict["prompt"]
-      title = prompt_dict["title"]
-      session["title"] = title
-      session["prompt"] = prompt
-      session["model"] = model
-    elif 'custom_prompt' in request.form:
-      prompt = "CustomPrompt"
-      chosen_prompt = request.form.get('custom_prompt')
-      title = "Custom Prompt"
-      session["title"] = title
-      session["prompt"] = chosen_prompt
-  elif 'conversation' in request.args:
-    convo_id = request.args.get('conversation')
-    session["convo"] = convo_id
-    d_base = g.d_base
-    convo = d_base.get_conversation(convo_id)
-    prompt = convo["prompt"]
-    if prompt != "CustomPrompt":
-      prompt_dict = ChatUtils.prompt_get(prompt)
-      title = prompt_dict["title"]
-      session["title"] = title
+  identity_hash = DataUtils.hash_func(
+    ip_address, 
+    uuid, 
+    user_agent
+  )
+  ##########################################################
+  try:
+    if not request.args.get("custom_prompt"):
+      raise Exception("Invalid method.")
+    model = session["model"]
+    prompt = session["prompt"]
+    title = session.get("title")
+    custom_prompt = True if request.args.get("custom_prompt") == "True" else False
+    if custom_prompt:
+      prompt_text = session["custom_prompt"]
     else:
-      title = "Custom Prompt AI"
-      session["title"] = title
-    return redirect("/chat")
-  if len(request.form) == 0:
-    return redirect("/")
-  else:
-    if not username or username is None:
-      d_base = g.d_base
-      users = d_base.get_all_users()
-      for user in users:
-        if identity_hash == user["identity_hash"]:
-          session["username"] = user["username"]
-          session["ip_address"] = ip_address
-          session["uuid"] = uuid
-          session["identity_hash"] = identity_hash
-          session["user_agent"] = user_agent
-          return redirect("/chat")
-      else:
-        username = "user" + DataUtils.random_token()
-        session["username"] = username
-        session["ip_address"] = ip_address
-        session["uuid"] = uuid
-        session["identity_hash"] = identity_hash
-        d_base = g.d_base
-        d_base.insert_user(username, ip_address, uuid, user_agent,
-                           identity_hash)
-        user = d_base.get_user(username)
-        convo = d_base.insert_conversation(username, prompt, chosen_prompt) # type: ignore
-        session["convo"] = convo["conversation_id"]
-        return redirect("/chat")
-    else:
-      if session.get("username") and session.get("identity_hash"):
-        d_base = g.d_base
-        convo = d_base.insert_conversation(username, prompt, chosen_prompt) # type: ignore
-        session["convo"] = convo["conversation_id"]
+      prompt_text = ChatUtils.prompt_get(prompt)["prompt"]
+    if request.args.get("convo"):
       return redirect("/chat")
+  except Exception as e:
+    logging.debug(f"Unable to login {e}")
+    text = f"Unable to login! Error: {e}"
+    return redirect(f"/?t={text}")
+  ##########################################################
+  if username is None:
+    username = "user" + DataUtils.random_token()
+    session["username"] = username
+    session["ip_address"] = ip_address
+    session["uuid"] = uuid
+    session["identity_hash"] = identity_hash
+    d_base.insert_user(
+      username, 
+      ip_address, 
+      uuid, 
+      user_agent,
+      identity_hash
+    )
+    convo = d_base.insert_conversation(
+      username, 
+      model,
+      title, 
+      prompt, 
+      prompt_text
+    )
+    session["convo"] = convo["conversation_id"]
+    return redirect("/chat")
+  else:
+    convo = d_base.insert_conversation(
+      username, 
+      model, 
+      title,
+      prompt, 
+      prompt_text
+    )
+    session["convo"] = convo["conversation_id"]
+    return redirect("/chat")
 
 
 @app.route('/top_up')
@@ -196,7 +229,7 @@ def top_up():
   username = session.get('username')
   return render_template('pay.html', username=username)
 
-
+#FIXME: This is a giant mess. Clean it up.
 @app.route("/chat", methods=["GET"])
 def chat():
   if not session.get("username"):
