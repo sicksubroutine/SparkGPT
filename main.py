@@ -32,12 +32,10 @@ def index():
   text = request.args.get("t")
   conv = {}
   if session.get("username") and session.get("identity_hash"):
-    session["sats"] = 10000
     username = session["username"]
     d_base = g.d_base
     conv = d_base.get_conversations_for_user(username)
     users = d_base.get_all_users()
-    d_base.update_user(username, "sats", session["sats"])
     logging.info(f"Number of users: {len(users)}")
   return render_template("index.html", text=text, conversations=conv)
 
