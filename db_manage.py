@@ -17,7 +17,7 @@ class DatabaseManager:
             uuid TEXT,
             user_agent TEXT,
             identity_hash TEXT,
-            sats INTEGER,
+            sats INTEGER DEFAULT 0,
             recently_paid BOOLEAN
         );
         
