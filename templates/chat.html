@@ -60,8 +60,8 @@
     </main>
       <footer class="p-4 bg-gray-900 border-t border-b border-gray-700 border-l border-r w-full flex flex-col md:items-center md:justify-between space-y-2 md:space-y-4">
         <div class="flex justify-between items-center w-full md:max-w-2xl">
-          {% if token_left %}
-          <div class="text-center text-white">Sats Remaining: <span class="text-red-500">{{ token_left }}</span> || <a href="/top_up" class="hover:text-red-500">Top Up Now</a></div>
+          {% if sats_left %}
+          <div class="text-center text-white">Sats Remaining: <span class="text-red-500">{{ sats_left }}</span> || <a href="/top_up" class="hover:text-red-500">Top Up Now</a></div>
           {% endif %}
         </div>
         <form action="/respond" method="post" onsubmit="sendMessage(event)" class="flex space-x-2 w-full">

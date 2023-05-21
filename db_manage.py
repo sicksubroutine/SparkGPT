@@ -62,7 +62,14 @@ class DatabaseManager:
     self.conn.executescript(schema)
     self.conn.commit()
 
-  def insert_user(self, username, ip_address, uuid, user_agent, identity_hash):
+  def insert_user(
+    self, 
+    username:str, 
+    ip_address:str, 
+    uuid:str, 
+    user_agent:str, 
+    identity_hash:str
+  ):
     self.conn.execute(
       '''
       INSERT INTO users 
@@ -71,7 +78,7 @@ class DatabaseManager:
       ''', (username, ip_address, uuid, user_agent, identity_hash, 0, False))
     self.conn.commit()
 
-  def get_user(self, username):
+  def get_user(self, username:str):
     cursor = self.conn.cursor()
     cursor.execute("SELECT * FROM users WHERE username=?", (username, ))
     return cursor.fetchone()
@@ -83,17 +90,23 @@ class DatabaseManager:
     columns = [col[0] for col in cursor.description]
     return [dict(zip(columns, row)) for row in rows]
 
-  def update_user(self, username, field, value):
+  def update_user(self, username:str, field:str, value):
     self.conn.execute(f"UPDATE users SET {field}=? WHERE username=?",
                       (value, username))
     self.conn.commit()
 
-  def delete_user(self, username):
+  def delete_user(self, username:str):
     self.conn.execute("DELETE FROM users WHERE username=?", (username, ))
     self.conn.commit()
 
-  def insert_conversation(self, username, model, title, prompt, prompt_text):
-      
+  def insert_conversation(
+    self, 
+    username:str, 
+    model:str, 
+    title:str, 
+    prompt:str, 
+    prompt_text:str
+  ):
         cursor = self.conn.cursor()
         cursor.execute(
           """
@@ -145,7 +158,12 @@ class DatabaseManager:
     self.conn.execute("DELETE FROM conversations WHERE id=?", (conversation_id, ))
     self.conn.commit()
 
-  def update_conversation_summaries(self, conversation_id, long_summary, short_summary):
+  def update_conversation_summaries(
+    self, 
+    conversation_id, 
+    long_summary:str, 
+    short_summary:str
+  ):
     self.conn.execute('''
         UPDATE conversations
         SET summary = ?, short_summary = ?
@@ -174,7 +192,7 @@ class DatabaseManager:
                    (conversation_id, ))
     return cursor.fetchone()
     
-  def get_conversations_for_user(self, username):
+  def get_conversations_for_user(self, username:str):
     cursor = self.conn.cursor()
     cursor.execute("SELECT * FROM conversations WHERE username=?",
                    (username, ))
@@ -182,7 +200,12 @@ class DatabaseManager:
     columns = [col[0] for col in cursor.description]
     return [dict(zip(columns, row)) for row in rows]
 
-  def insert_conversation_history(self, conversation_id, role, content):
+  def insert_conversation_history(
+    self, 
+    conversation_id, 
+    role:str, 
+    content:str
+  ):
     cursor = self.conn.cursor()
     cursor.execute(
   "INSERT INTO conversation_history (conversation_id, role, content) VALUES (?, ?, ?)",
@@ -199,7 +222,7 @@ class DatabaseManager:
     columns = [col[0] for col in cursor.description]
     return [dict(zip(columns, row)) for row in rows]
 
-  def insert_message(self, conversation_id, role, content):
+  def insert_message(self, conversation_id, role:str, content:str):
     cursor = self.conn.cursor()
     cursor.execute(
       "INSERT INTO messages (conversation_id, role, content) VALUES (?, ?, ?)",
@@ -213,7 +236,7 @@ class DatabaseManager:
                    (conversation_id, message_id))
     self.conn.commit()
 
-  def get_messages(self, conversation_id):
+  def get_messages(self, conversation_id) -> list:
     cursor = self.conn.cursor()
     cursor.execute("SELECT * FROM messages WHERE conversation_id=?",
                    (conversation_id, ))
@@ -223,12 +246,12 @@ class DatabaseManager:
 
   def insert_payment(
     self, 
-    username, 
-    amount, 
-    memo, 
-    payment_request, 
-    payment_hash, 
-    invoice_status
+    username:str, 
+    amount:int, 
+    memo:str, 
+    payment_request:str, 
+    payment_hash:str, 
+    invoice_status:str
     ):
     self.conn.execute(
         '''
@@ -238,7 +261,7 @@ class DatabaseManager:
         ''', (username, amount, memo, payment_request, payment_hash, invoice_status))
     self.conn.commit()
 
-  def get_payment(self, payment_hash):
+  def get_payment(self, payment_hash:str):
     cursor = self.conn.cursor()
     cursor.execute("SELECT * FROM payments WHERE payment_hash=?", (payment_hash,))
     return cursor.fetchone()
@@ -248,12 +271,12 @@ class DatabaseManager:
     cursor.execute("SELECT * FROM payments")
     return cursor.fetchall()
 
-  def update_payment(self, payment_hash, field, value):
+  def update_payment(self, payment_hash:str, field:str, value):
     self.conn.execute(f"UPDATE payments SET {field}=? WHERE payment_hash=?",
                       (value, payment_hash))
     self.conn.commit()
       
-  def get_invoice_status(self, payment_hash):
+  def get_invoice_status(self, payment_hash:str):
     cursor = self.conn.cursor()
     cursor.execute("SELECT invoice_status FROM payments WHERE payment_hash=?", 
                    (payment_hash,))
@@ -263,7 +286,7 @@ class DatabaseManager:
     else:
         return None
 
-  def delete_payment(self, payment_hash):
+  def delete_payment(self, payment_hash:str):
     self.conn.execute("DELETE FROM payments WHERE payment_hash=?", (payment_hash,))
     self.conn.commit()
 
@@ -285,4 +308,4 @@ def close_db(error):
 
 
 def before_request():
-  g.d_base = DatabaseManager(open_db)
+  g.base = DatabaseManager(open_db)

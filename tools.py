@@ -453,7 +453,7 @@ class BitcoinUtils:
       return None
 
   @staticmethod
-  def get_lightning_invoice(sats: str, memo: str) -> dict:
+  def get_lightning_invoice(sats: int, memo: str) -> dict:
     """
     Generates a Lightning invoice for the given amount of Satoshis.
 
