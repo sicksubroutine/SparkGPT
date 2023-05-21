@@ -474,7 +474,7 @@ class BitcoinUtils:
       "amount": sats,
       "memo": memo,
       "expiry": 1500,
-      "webhook": "https://chatgpt-flask-app.thechaz.repl.co/webhook"
+      "webhook": "https://sparkgpt.thechaz.repl.co/chat/webhook"
     }
     try:
       response, response_json = DataUtils.api_request(
