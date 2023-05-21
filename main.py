@@ -25,6 +25,7 @@ else:
 ## NOTE: LNURL-AUTH : https://github.com/lnurl/luds/blob/luds/04.md
 ## TODO: Create basic auth with username and password or possibly a single string.
 ## TODO: Setup a "minimum sats" level of 100 sats or something.
+## TODO: Add an inductory message based upon the prompt.
 
 TOKEN_LIMIT = 3000
 socketio = SocketIO(app)
