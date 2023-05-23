@@ -297,6 +297,8 @@ def chat():
   # sats code
   user = base.get_user(username)
   sats = user["sats"]
+  if sats is None:
+    sats = 0
   if not does_user_have_enough_sats(username):
     return render_template("pay.html", username=username)
   else:

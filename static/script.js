@@ -11,20 +11,6 @@ window.onload = function() {
   });
 };
 
-/*
-document.getElementById('menu-button').addEventListener('click', function() {
- document.getElementById('sidebar').classList.toggle('translate-x-0');
-});
-
-document.addEventListener('click', function(event) {
-  var isClickInside = document.getElementById('sidebar').contains(event.target);
-  var isOnMenuButton = document.getElementById('menu-button').contains(event.target);
-  
-  if (!isClickInside && !isOnMenuButton && document.getElementById('sidebar').classList.contains('translate-x-0')) {
-    document.getElementById('sidebar').classList.toggle('translate-x-0');
-    }
-});*/
-
 function sendMessage(event) {
   event.preventDefault();
   const message = document.querySelector('textarea[name="message"]').value;
