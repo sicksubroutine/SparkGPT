@@ -309,7 +309,7 @@ def chat():
       model=session.get("model")
     )
 
-def message_removal(messages, token_usage, convo):
+def message_removal(messages, token_usage, convo) -> None:
   base:DatabaseManager = g.base
   session["token_usage"] = token_usage
   usage_over_limit:bool = token_usage > TOKEN_LIMIT
