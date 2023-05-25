@@ -24,8 +24,6 @@ else:
 ## TODO: Consider adding a way to login with the Lightning Network.
 ## NOTE: LNURL-AUTH : https://github.com/lnurl/luds/blob/luds/04.md
 ## TODO: Create basic auth with username and password or possibly a single string.
-## TODO: Setup a "minimum sats" level of 100 sats or something.
-## TODO: Add an inductory message based upon the prompt.
 
 TOKEN_LIMIT = 3000
 socketio = SocketIO(app)
@@ -128,7 +126,7 @@ def top_up():
   if not session.get("username"):
     return redirect("/")
   username = session.get('username')
-  return render_template('pay.html', username=username)
+  return render_template('pay.html', username=username, info="Topping up your balance!")
 
 ##########################################################
 
@@ -192,8 +190,12 @@ def login():
     custom_prompt = True if request.args.get("custom_prompt") == "True" else False
     if custom_prompt:
       prompt_text = session["custom_prompt"]
+      opening = f'Custom Prompt: {session["custom_prompt"]}'
+      session["opening"] = opening
     else:
       prompt_text = ChatUtils.prompt_get(prompt)["prompt"]
+      opening = ChatUtils.prompt_get(prompt)["opening"]
+      session["opening"] = opening
     if request.args.get("convo"):
       return redirect("/chat")
   except Exception as e:
@@ -239,7 +241,7 @@ def does_user_have_enough_sats(username:str) -> bool:
   user = base.get_user(username)
   database_sats = user["sats"]
   recently_paid = user["recently_paid"]
-  if database_sats <= 0:
+  if database_sats <= 99:
     return False
   if recently_paid:
     base.update_user(username, "recently_paid", False)
@@ -250,7 +252,7 @@ def does_user_have_enough_sats(username:str) -> bool:
   
 def message_over_balance(username:str, message:str, model:str) -> bool:
   base:DatabaseManager = g.base
-  sats = base.get_user(username)["sats"]
+  sats = base.get_user(username)["sats"] - 99
   message_estimate = ChatUtils.estimate_tokens(message)
   previous_token_usage = session.get("token_usage")
   if previous_token_usage is not None:
@@ -300,7 +302,7 @@ def chat():
   if sats is None:
     sats = 0
   if not does_user_have_enough_sats(username):
-    return render_template("pay.html", username=username)
+    return render_template("pay.html", username=username, info="Insufficient Sats!")
   else:
     return render_template(
       "chat.html",
@@ -308,7 +310,8 @@ def chat():
       title=session.get("title"),
       text=text,
       sats_left=sats,
-      model=session.get("model")
+      model=session.get("model"),
+      opening=session.get("opening")
     )
 
 def message_removal(messages, token_usage, convo) -> None:

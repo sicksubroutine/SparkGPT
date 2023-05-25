@@ -47,6 +47,15 @@
         <div></div> <!-- Spacer -->
       </header>
       <main id="message-box" class="flex-grow overflow-y-scroll bg-gray-800 p-4 space-y-6 md:max-h-[72vh] w-full md:max-w-2xl md:mx-auto sm:max-h-[64vh] lg:max-h-[74vh] border-l border-r border-gray-700">
+    {% if opening %}
+
+      <div class="flex flex-col items-start">
+        <div class="max-w-md mx-2 py-2 px-4 rounded-lg bg-blue-700 text-white">
+          {{ opening|safe }}
+        </div>
+      </div>
+      
+    {% endif %}
     {% for message in messages %}
     {% if message.role != 'system' %}
     <div class="flex flex-col {% if message.role == 'assistant' %}items-start{% else %}items-end{% endif %}">

@@ -19,6 +19,9 @@
     <div></div> <!-- Spacer -->
   </header>
   <h3 id="topup" class="mt-4 text-lg text-red-500">Top up now!</h3>
+  {% if info %}
+  <h4 class="text-md text-red-500">{{ info }}</h4>
+  {% endif %}
   <form id="invoice-form" class="flex flex-col items-center mt-4">
     Sats: <input type="text" id="sats" name="sats" pattern="[0-9]*" placeholder="Enter an Amount of Sats..." inputmode="numeric" value=1000 title="Please enter a valid number!" required class="appearance-none relative block w-64 px-3 py-2 border border-gray-300 placeholder-gray-500 text-white rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm bg-gray-800 mt-2">
     <button type="submit" id="generate-button" class="group relative w-64 flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 mt-4">Generate Invoice</button>
@@ -90,13 +93,7 @@ invoiceForm.addEventListener("submit", (event) => {
 generateButton.addEventListener("click", () => {
     qrCodeDiv.innerHTML = "";
 });
-         function handlePaymentSuccess() {
-            $('#payment-popup').html('Payment successful!');
-
-        window.parent.postMessage('payment-successful', '*');
-        window.parent.$('.popup').hide();
-      }
-        function startPolling() {
+          function startPolling() {
             const source = new EventSource("/payment_updates");
             const target = document.querySelector("#checkmark");
             source.addEventListener("message", (event) => {
@@ -106,7 +103,6 @@ generateButton.addEventListener("click", () => {
                 if (data.status === 'not paid') {
                     messageDiv.textContent = "";
                 } else {
-                  setTimeout(() => handlePaymentSuccess(), 1000); 
                   messageDiv.textContent = "Invoice for " + satNum + " sats has been paid!";
                   qrCodeDiv.classList.add("hidden");
                   numOfSats.classList.add("hidden");
@@ -117,7 +113,7 @@ generateButton.addEventListener("click", () => {
                   target.appendChild(icon);
                   qrCodeDiv.innerHTML = "";
                   source.close();
-                  setTimeout(() => window.location.href = "/chat", 3000);
+                  setTimeout(() => window.location.href = "/chat", 5000);
                 }
             });
         }

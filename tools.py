@@ -183,7 +183,7 @@ class DataUtils:
         summary_msgs += message["content"]
       elif message["role"] == "assistant":
         pass
-    prompt = """The following message should be summerized as your output.
+    prompt = """The following message should be summarized as your output.
           Output should have no explanation or elaboration. Just a summary.
           Output is required to be five words or less with no punctuation.
           Your output will used for a filename so be descriptive please!"""
@@ -274,31 +274,39 @@ class ChatUtils:
     prompt_dict = {
       "prompt4chan": {
         "prompt": os.environ['4CHANPROMPT'],
-        "title": "4Chan Green Text"
+        "title": "4Chan Green Text",
+        "opening": "Welcome to Green Text. What's your boggle?"
       },
       "IFSPrompt": {
         "prompt": os.environ['IFSPROMPT'],
-        "title": "Internal Family Systems AI"
+        "title": "Internal Family Systems AI",
+        "opening": "Welcome to IFS AI. How are you feeling today?"
       },
       "KetoPrompt": {
         "prompt": os.environ['KETOPROMPT'],
-        "title": "Keto Helper"
+        "title": "Keto Helper",
+        "opening": "Welcome to the Keto Helper. Do you have any Keto questions?"
       },
       "CodingBuddy": {
         "prompt": os.environ['CODINGBUDDYPROMPT'],
-        "title": "Coding Buddy"
+        "title": "Coding Buddy",
+        "opening": "Hello! I'm your Coding Buddy. What are you working on today?"
       },
       "TherapistPrompt": {
         "prompt": os.environ['THERAPISTPROMPT'],
-        "title": "Therapist Bot"
+        "title": "Therapist Bot",
+        "opening": "Welcome to Therapist Bot. What's on your mind today?"
       },
       "foodMenuPrompt": {
         "prompt": os.environ['FOODMENUPROMPT'],
-        "title": "Menu Assistant 8000"
+        "title": "Menu Assistant 8000",
+        "opening": "Welcome to Menu Assistant 8000. Do you want to create a breakfast, lunch, or dinner menu?" # noqa
+        
       },
       "HelpfulPrompt": {
         "prompt": os.environ['HELPFULPROMPT'],
-        "title": "General AI"
+        "title": "General AI",
+        "opening": "Hello! I'm a Generally Helpful AI. How can I help you?"
       },
       "AI_Talks_To_Self": {
         "prompt": os.environ['TALKTOSELFPROMPT'],
@@ -311,7 +319,8 @@ class ChatUtils:
     }
     return prompt_dict.get(prompt, {
       'prompt': 'Invalid Prompt',
-      'title': 'Invalid title'
+      'title': 'Invalid Title',
+      'opening': 'Invalid Opening'
     })
 
   @staticmethod
