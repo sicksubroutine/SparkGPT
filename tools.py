@@ -1,9 +1,10 @@
 from flask import g, Request
+from datetime import datetime as dt
 import string
 import random
 import uuid 
 import hashlib 
-import os 
+import os
 import openai 
 import time 
 import requests 
@@ -51,9 +52,41 @@ class DataUtils:
       return None, None
 
   @staticmethod
-  def random_token() -> str:
+  def time_get() -> str:
+    time = dt.now()
+    string_time = time.strftime("%m-%d-%Y %I:%M:%S %p")
+    return string_time
+  
+  @staticmethod
+  def saltGet() -> str:
+    """
+    Generate a random salt consisting of uppercase letters, lowercase letters,
+    digits, and punctuation. The salt is 30 characters long.
+    
+    Returns:
+    str: A random salt.
+    """
+    return ''.join(
+      random.choice(string.ascii_letters + string.digits + string.punctuation)
+      for _ in range(30))
+
+  @staticmethod
+  def tokenGet30() -> str:
     """
     Generate a random token consisting of uppercase letters and digits.
+    The token is 30 characters long.
+
+    Returns:
+    str: A random token.
+    """
+    return ''.join(
+      random.choice(string.ascii_letters + string.digits) for _ in range(30))
+
+  @staticmethod
+  def tokenGet16() -> str:
+    """
+    Generate a random token consisting of uppercase letters and digits.
+    The token is 16 characters long.
 
     Returns:
     str: A random token.
@@ -529,3 +562,4 @@ class BitcoinUtils:
     except Exception as e:
       logging.error(e)
       return False
+

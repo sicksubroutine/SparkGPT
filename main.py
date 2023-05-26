@@ -10,6 +10,7 @@ import qrcode
 import random 
 import logging
 
+
 logging.basicConfig(filename='logfile.log', level=logging.ERROR)
 
 if os.path.exists(".env"):
@@ -23,7 +24,8 @@ else:
 ## TODO: Make the chat app look better across different interfaces. Responsive.
 ## TODO: Consider adding a way to login with the Lightning Network.
 ## NOTE: LNURL-AUTH : https://github.com/lnurl/luds/blob/luds/04.md
-## TODO: Create basic auth with username and password or possibly a single string.
+## TODO: Create basic auth with username and password.
+## TODO: Encrypt data in the database.
 
 TOKEN_LIMIT = 3000
 socketio = SocketIO(app)
@@ -39,6 +41,70 @@ def index():
     users = base.get_all_users()
     logging.info(f"Number of users: {len(users)}")
   return render_template("index.html", text=text, conversations=conv)
+
+@app.route("/signup", methods=["POST"])
+def signup():
+  if session.get("username"):
+    return redirect("/")
+  try:
+    username = request.form["username"]
+    base = g.base
+    user = base.get_user(username)
+    if user is not None:
+      raise Exception("Username already exists!")
+    password = request.form["password"]
+    salt = DataUtils.saltGet()
+    password_hash = DataUtils.hash_func(password, salt)
+    user_agent = request.headers['User-Agent']
+    uuid = DataUtils.uuid_func()
+    ip_address = DataUtils.get_IP_Address(request)
+    creation_date = DataUtils.time_get()
+    identity_hash = DataUtils.hash_func(
+      ip_address, 
+      uuid, 
+      user_agent
+    )
+    base.insert_user(
+      username=username,
+      password=password_hash,
+      salt=salt,
+      ip_address=ip_address,
+      uuid=uuid,
+      user_agent=user_agent,
+      identity_hash=identity_hash 
+    )
+    
+    return redirect("/")
+  except Exception as e:
+    logging.error(e)
+    return redirect(f"/?t={e}")
+  
+@app.route("/login", methods=["POST"])
+def login():
+  if session.get("username"):
+    return redirect("/")
+  try:
+    username = request.form["username"]
+    base = g.base
+    user = base.get_user(username)
+    if user is None:
+      raise Exception("User does not exist!")
+    password = request.form["password"]
+    salt = user["salt"]
+    password_hash = DataUtils.hash_func(password, salt)
+    if password_hash != password:
+      raise Exception("Incorrect password!")
+    session["username"] = username
+    session["identity_hash"] = user["identity_hash"]
+    return redirect("/")
+  except Exception as e:
+    logging.error(e)
+    return redirect(f"/?t={e}")
+ 
+@app.route("/logout")
+def logout():
+  session.clear()
+  return redirect("/")
 
 ##### Bitcoin Related #####
 
@@ -139,7 +205,7 @@ def custom_prompt():
   session["title"] = "Custom Prompt"
   session["prompt"] = "CustomPrompt"
   session["model"] = model
-  return redirect("/login?custom_prompt=True")
+  return redirect("/process?custom_prompt=True")
   
 @app.route("/prompt", methods=["POST"])
 def prompt():
@@ -149,7 +215,7 @@ def prompt():
   session["title"] = prompt_dict["title"]
   session["prompt"] = prompt
   session["model"] = model
-  return redirect("/login?custom_prompt=False")
+  return redirect("/process?custom_prompt=False")
 
 @app.route("/convo_open", methods=["GET"])
 def convo_open():
@@ -165,11 +231,11 @@ def convo_open():
   session["prompt"] = convo["prompt"]
   session["model"] = convo["model"]
   session["convo"] = convo_id
-  return redirect(f"/login?custom_prompt={custom_prompt}&convo=True")
+  return redirect(f"/process?custom_prompt={custom_prompt}&convo=True")
 
 
-@app.route('/login', methods=['GET'])
-def login():
+@app.route('/process', methods=['GET'])
+def process():
   base:DatabaseManager = g.base
   uuid = DataUtils.uuid_func()
   ip_address = DataUtils.get_IP_Address(request)
@@ -204,7 +270,7 @@ def login():
     return redirect(f"/?t={text}")
   ##########################################################
   if username is None:
-    username = "user" + DataUtils.random_token()
+    username = "user" + DataUtils.tokenGet16()
     session["username"] = username
     session["ip_address"] = ip_address
     session["uuid"] = uuid
@@ -435,12 +501,6 @@ def export_messages():
     model
   )
   return send_file(path_filename, as_attachment=True)
-
-@app.route("/logout")
-def logout():
-  session.clear()
-  return redirect("/")
-
 
 if __name__ == "__main__":
   socketio.run(app, host='0.0.0.0', port=81)
