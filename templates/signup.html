@@ -49,6 +49,12 @@
           id="sidebar"
           class="bg-gray-950 w-96 sm:w-96 p-2 sm:p-4 border-r border-gray-800"
         >
+        <a href="/login" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 mt-4">
+            Login
+          </a>
+        <a href="/signup" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 mt-4">
+            Sign Up
+        </a>
         </div>
         <div class="min-h-screen p-4 flex w-full">
           <section class="w-1/2 m-auto">
@@ -63,14 +69,15 @@
             {% endif %}
             </header>
             <div class="max-w-md w-full space-y-8">
-                <form action="/setup_function" method="post" class="mt-8 space-y-6">
+                <form action="/signup_function" method="post" class="mt-8 space-y-6">
                    <label for="username" class="sr-only">Username</label>
                      <input type="text" name="username" id="username" placeholder="Username" class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-white rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm bg-gray-800 mt-2" required>
                      <label for="password" class="sr-only">Password</label>
                      <input type="password" name="password" id="password" placeholder="Password" class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-white rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm bg-gray-800 mt-2" required>
                     <label for="password_confirm" class="sr-only">Confirm Password</label>
                     <input type="password" name="password_confirm" id="password_confirm" placeholder="Confirm Password" class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-white rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm bg-gray-800 mt-2" required>
-                     <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 mt-4">Signup</button>
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 mt-4">Signup</button>
             </form>
             </div>
         </section>

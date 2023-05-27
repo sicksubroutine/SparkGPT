@@ -1,6 +1,7 @@
-from flask import render_template, session, request, redirect, send_file,jsonify
+from flask import render_template, session, request, redirect, send_file, jsonify
 from flask import Response, g
 from flask_socketio import SocketIO
+from flask_seasurf import SeaSurf
 from tools import DataUtils, ChatUtils, BitcoinUtils
 from db_manage import DatabaseManager
 from __init__ import app
@@ -9,7 +10,6 @@ import markdown
 import qrcode 
 import random 
 import logging
-
 
 logging.basicConfig(filename='logfile.log', level=logging.ERROR)
 
@@ -24,24 +24,35 @@ else:
 ## TODO: Make the chat app look better across different interfaces. Responsive.
 ## TODO: Consider adding a way to login with the Lightning Network.
 ## NOTE: LNURL-AUTH : https://github.com/lnurl/luds/blob/luds/04.md
-## TODO: Create basic auth with username and password.
+## TODO: Add a way to do streaming messages. (SSE)
 ## TODO: Encrypt data in the database.
 
 TOKEN_LIMIT = 3000
+csrf = SeaSurf()
+csrf.init_app(app)
 socketio = SocketIO(app)
 
 @app.route("/", methods=["GET"])
 def index():
+  if session.get("username"):
+    return redirect("/conversations")
   text = request.args.get("t")
-  conv = {}
-  if session.get("username") and session.get("identity_hash"):
-    username = session["username"]
-    base:DatabaseManager = g.base
-    conv = base.get_conversations_for_user(username)
-    users = base.get_all_users()
-    logging.info(f"Number of users: {len(users)}")
-  return render_template("index.html", text=text, conversations=conv)
+  return render_template("index.html", text=text)
+    
 
+@app.route("/conversations", methods=["GET"])
+def conversations():
+  if not session.get("username"):
+    return redirect("/")
+  text = request.args.get("t")
+  username = session["username"]
+  base:DatabaseManager = g.base
+  conv = base.get_conversations_for_user(username)
+  users = base.get_all_users()
+  logging.info(f"Number of users: {len(users)}")
+  return render_template("conv.html", text=text, conversations=conv)
+
+@csrf.include
 @app.route("/signup", methods=["GET"])
 def signup():
   if session.get("username"):
@@ -86,12 +97,12 @@ def signup_function():
       recently_paid=False,
       creation_date=creation_date
     )
-    
-    return redirect("/")
+    return redirect("/conversations")
   except Exception as e:
     logging.error(e)
     return redirect(f"/?t={e}")
-  
+
+@csrf.include
 @app.route("/login", methods=["GET"])
 def login():
   if session.get("username"):
@@ -116,8 +127,10 @@ def login_function():
     if password_hash != database_password:
       raise Exception("Incorrect username or password!")
     session["username"] = username
+    session["ip_address"] = user["ip_address"]
+    session["uuid"] = user["uuid"]
     session["identity_hash"] = user["identity_hash"]
-    return redirect("/")
+    return redirect("/conversations")
   except Exception as e:
     logging.error(e)
     return redirect(f"/?t={e}")
@@ -205,6 +218,7 @@ def payment_updates():
   #invoice_status = base.get_invoice_status(payment_hash)
   paid = BitcoinUtils.payment_check(payment_hash)
   if paid:
+    data = 'data: {"status": "paid"}\n\n'
     base.update_payment(payment_hash, "invoice_status", "paid")
     text = f"{payment_hash} has been paid!"
     logging.info(text)
@@ -218,8 +232,6 @@ def payment_updates():
     base.update_user(username, "recently_paid", True)
     current_user = base.get_user(username)
     DataUtils.clean_up_invoices()
-  if paid:
-    data = 'data: {"status": "paid"}\n\n'
   else:
     data = 'data: {"status": "not paid"}\n\n'
   return Response(data, content_type='text/event-stream')
@@ -271,19 +283,13 @@ def convo_open():
   session["convo"] = convo_id
   return redirect(f"/process?custom_prompt={custom_prompt}&convo=True")
 
-
+@csrf.exempt
 @app.route('/process', methods=['GET'])
 def process():
+  if not session.get("username"):
+    return redirect("/")
   base:DatabaseManager = g.base
-  uuid = DataUtils.uuid_func()
-  ip_address = DataUtils.get_IP_Address(request)
-  user_agent = request.headers['User-Agent']
   username = session.get('username')
-  identity_hash = DataUtils.hash_func(
-    ip_address, 
-    uuid, 
-    user_agent
-  )
   ##########################################################
   try:
     if not request.args.get("custom_prompt"):
@@ -307,38 +313,15 @@ def process():
     text = f"Unable to login! Error: {e}"
     return redirect(f"/?t={text}")
   ##########################################################
-  if username is None:
-    username = "user" + DataUtils.tokenGet16()
-    session["username"] = username
-    session["ip_address"] = ip_address
-    session["uuid"] = uuid
-    session["identity_hash"] = identity_hash
-    base.insert_user(
-      username, 
-      ip_address, 
-      uuid, 
-      user_agent,
-      identity_hash
-    )
-    convo = base.insert_conversation(
-      username, 
-      model,
-      title, 
-      prompt, 
-      prompt_text
-    )
-    session["convo"] = convo["conversation_id"]
-    return redirect("/chat")
-  else:
-    convo = base.insert_conversation(
-      username, 
-      model, 
-      title,
-      prompt, 
-      prompt_text
-    )
-    session["convo"] = convo["conversation_id"]
-    return redirect("/chat")
+  convo = base.insert_conversation(
+    username, 
+    model,
+    title, 
+    prompt, 
+    prompt_text
+  )
+  session["convo"] = convo["conversation_id"]
+  return redirect("/chat")
 
 def does_user_have_enough_sats(username:str) -> bool:
   base:DatabaseManager = g.base
@@ -349,9 +332,7 @@ def does_user_have_enough_sats(username:str) -> bool:
     return False
   if recently_paid:
     base.update_user(username, "recently_paid", False)
-  if session.get("forced_buy"):
-    session["forced_buy"] = False
-    return False
+    return True
   return True
   
 def message_over_balance(username:str, message:str, model:str) -> bool:
@@ -405,6 +386,9 @@ def chat():
   sats = user["sats"]
   if sats is None:
     sats = 0
+  if session["force_buy"]:
+    session["force_buy"] = False
+    return render_template("pay.html", username=username, info="Less than 100 Sats!")
   if not does_user_have_enough_sats(username):
     return render_template("pay.html", username=username, info="Insufficient Sats!")
   else:
@@ -416,7 +400,7 @@ def chat():
       sats_left=sats,
       model=session.get("model"),
       opening=session.get("opening")
-    )
+    )  
 
 def message_removal(messages, token_usage, convo) -> None:
   base:DatabaseManager = g.base
@@ -460,10 +444,14 @@ def respond():
     "user", 
     message
   )
-  base.insert_conversation_history(
+  user_message_id = base.insert_conversation_history(
     convo, 
     "user", 
     message
+  )
+  user_string = render_template(
+    "del_msg.html", 
+    message_id=user_message_id
   )
   response, token_usage = ChatUtils.openai_response(messages, model)
   ##########################################################
@@ -477,13 +465,30 @@ def respond():
   )
   ##########################################################
   message_removal(messages, token_usage, convo)
-  base.insert_message(convo, "assistant", response)
-  base.insert_conversation_history(
+  base.insert_message(
+    convo, 
+    "assistant",
+    response
+  )
+  assistant_message_id = base.insert_conversation_history(
     convo, 
     "assistant", 
     response
   )
-  return jsonify({"response": response})
+  assistant_string = render_template(
+    "del_msg.html", 
+    message_id=assistant_message_id
+  )
+  response = markdown.markdown(
+    response, 
+    extensions=['fenced_code']
+  )
+  return jsonify({
+    "response": response,
+    "user_string": user_string,
+    "assistant_string": assistant_string,
+    "sats": sats
+  })
 
 
 @app.route("/reset")

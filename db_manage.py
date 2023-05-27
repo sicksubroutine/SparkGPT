@@ -8,7 +8,6 @@ class DatabaseManager:
     self.open_db = open_db
     self.setup_database()
 
-  """
   def setup_database(self):
     self.conn = self.open_db()
     schema = '''
@@ -22,22 +21,9 @@ class DatabaseManager:
             identity_hash TEXT,
             sats INTEGER,
             recently_paid BOOLEAN,
-            creation_date TEXT
-        );
-  """
-  
-  
-  def setup_database(self):
-    self.conn = self.open_db()
-    schema = '''
-        CREATE TABLE IF NOT EXISTS users (
-            username TEXT PRIMARY KEY,
-            ip_address TEXT,
-            uuid TEXT,
-            user_agent TEXT,
-            identity_hash TEXT,
-            sats INTEGER DEFAULT 0,
-            recently_paid BOOLEAN
+            creation_date TEXT,
+            last_login TEXT DEFAULT '',
+            admin BOOLEAN DEFAULT FALSE
         );
         
         CREATE TABLE IF NOT EXISTS conversations (
@@ -81,7 +67,6 @@ class DatabaseManager:
     self.conn.executescript(schema)
     self.conn.commit()
 
-  """
   def insert_user(
     self,
     username:str,
@@ -107,8 +92,10 @@ class DatabaseManager:
         identity_hash, 
         sats, 
         recently_paid,
-        creation_date)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        creation_date,
+        last_login,
+        admin)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ''', (
         username, 
         password, 
@@ -119,25 +106,10 @@ class DatabaseManager:
         identity_hash, 
         sats, 
         recently_paid,
-        creation_date
+        creation_date,
+        '',
+        False
       ))
-      self.conn.commit()
-  """
-
-  def insert_user(
-    self, 
-    username:str, 
-    ip_address:str, 
-    uuid:str, 
-    user_agent:str, 
-    identity_hash:str
-  ):
-    self.conn.execute(
-      '''
-      INSERT INTO users 
-      (username, ip_address, uuid, user_agent, identity_hash, sats, recently_paid)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-      ''', (username, ip_address, uuid, user_agent, identity_hash, 0, False))
     self.conn.commit()
 
   def get_user(self, username:str):
