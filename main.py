@@ -42,8 +42,15 @@ def index():
     logging.info(f"Number of users: {len(users)}")
   return render_template("index.html", text=text, conversations=conv)
 
-@app.route("/signup", methods=["POST"])
+@app.route("/signup", methods=["GET"])
 def signup():
+  if session.get("username"):
+    return redirect("/")
+  text = request.args.get("t")
+  return render_template("signup.html", text=text)
+
+@app.route("/signup_function", methods=["POST"])
+def signup_function():
   if session.get("username"):
     return redirect("/")
   try:
@@ -53,6 +60,9 @@ def signup():
     if user is not None:
       raise Exception("Username already exists!")
     password = request.form["password"]
+    password_confirm = request.form["password_confirm"]
+    if password != password_confirm:
+      raise Exception("Passwords do not match!")
     salt = DataUtils.saltGet()
     password_hash = DataUtils.hash_func(password, salt)
     user_agent = request.headers['User-Agent']
@@ -71,7 +81,10 @@ def signup():
       ip_address=ip_address,
       uuid=uuid,
       user_agent=user_agent,
-      identity_hash=identity_hash 
+      identity_hash=identity_hash,
+      sats=0,
+      recently_paid=False,
+      creation_date=creation_date
     )
     
     return redirect("/")
@@ -79,8 +92,15 @@ def signup():
     logging.error(e)
     return redirect(f"/?t={e}")
   
-@app.route("/login", methods=["POST"])
+@app.route("/login", methods=["GET"])
 def login():
+  if session.get("username"):
+    return redirect("/")
+  text = request.args.get("t")
+  return render_template("login.html", text=text)  
+  
+@app.route("/login_function", methods=["POST"])
+def login_function():
   if session.get("username"):
     return redirect("/")
   try:
@@ -90,10 +110,11 @@ def login():
     if user is None:
       raise Exception("User does not exist!")
     password = request.form["password"]
+    database_password = user["password"]
     salt = user["salt"]
     password_hash = DataUtils.hash_func(password, salt)
-    if password_hash != password:
-      raise Exception("Incorrect password!")
+    if password_hash != database_password:
+      raise Exception("Incorrect username or password!")
     session["username"] = username
     session["identity_hash"] = user["identity_hash"]
     return redirect("/")
@@ -148,6 +169,7 @@ def qrcode_gen() -> str:
   return path
 
 
+"""
 @app.route("/webhook", methods=["POST"])
 def webhook():
   data = request.json
@@ -173,14 +195,30 @@ def webhook():
     current_user = base.get_user(username)
     DataUtils.clean_up_invoices()
   return "OK"
+  """
 
 
 @app.route('/payment_updates')
 def payment_updates():
   payment_hash = session["payment_hash"]
   base:DatabaseManager = g.base
-  invoice_status = base.get_invoice_status(payment_hash)
-  if invoice_status == 'paid':
+  #invoice_status = base.get_invoice_status(payment_hash)
+  paid = BitcoinUtils.payment_check(payment_hash)
+  if paid:
+    base.update_payment(payment_hash, "invoice_status", "paid")
+    text = f"{payment_hash} has been paid!"
+    logging.info(text)
+    payment = base.get_payment(payment_hash)
+    sats = payment["amount"]
+    username = payment["username"]
+    current_user = base.get_user(username)
+    current_balance = current_user["sats"]
+    current_balance += sats
+    base.update_user(username, "sats", current_balance)
+    base.update_user(username, "recently_paid", True)
+    current_user = base.get_user(username)
+    DataUtils.clean_up_invoices()
+  if paid:
     data = 'data: {"status": "paid"}\n\n'
   else:
     data = 'data: {"status": "not paid"}\n\n'

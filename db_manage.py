@@ -8,6 +8,25 @@ class DatabaseManager:
     self.open_db = open_db
     self.setup_database()
 
+  """
+  def setup_database(self):
+    self.conn = self.open_db()
+    schema = '''
+        CREATE TABLE IF NOT EXISTS users (
+            username TEXT PRIMARY KEY,
+            password TEXT,
+            salt TEXT,
+            ip_address TEXT,
+            uuid TEXT,
+            user_agent TEXT,
+            identity_hash TEXT,
+            sats INTEGER,
+            recently_paid BOOLEAN,
+            creation_date TEXT
+        );
+  """
+  
+  
   def setup_database(self):
     self.conn = self.open_db()
     schema = '''
@@ -61,6 +80,49 @@ class DatabaseManager:
         '''
     self.conn.executescript(schema)
     self.conn.commit()
+
+  """
+  def insert_user(
+    self,
+    username:str,
+    password:str,
+    salt:str,
+    ip_address:str,
+    uuid:str,
+    user_agent:str,
+    identity_hash:str,
+    sats:int,
+    recently_paid:bool,
+    creation_date:str
+  ):
+    self.conn.execute(
+      '''
+      INSERT INTO users(
+        username, 
+        password, 
+        salt, 
+        ip_address, 
+        uuid, 
+        user_agent, 
+        identity_hash, 
+        sats, 
+        recently_paid,
+        creation_date)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ''', (
+        username, 
+        password, 
+        salt, 
+        ip_address, 
+        uuid, 
+        user_agent, 
+        identity_hash, 
+        sats, 
+        recently_paid,
+        creation_date
+      ))
+      self.conn.commit()
+  """
 
   def insert_user(
     self, 

@@ -515,8 +515,7 @@ class BitcoinUtils:
       "out": False,
       "amount": sats,
       "memo": memo,
-      "expiry": 1500,
-      "webhook": "https://sparkgpt.thechaz.repl.co/webhook"
+      "expiry": 1500
     }
     try:
       response, response_json = DataUtils.api_request(

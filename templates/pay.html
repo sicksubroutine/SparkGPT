@@ -18,7 +18,6 @@
     <div id="num_of_sats" class="mt-4 text-lg text-white hidden relative -top-64"></div>
     <div></div> <!-- Spacer -->
   </header>
-  <h3 id="topup" class="mt-4 text-lg text-red-500">Top up now!</h3>
   {% if info %}
   <h4 id="info" class="text-md text-red-500">{{ info }}</h4>
   {% endif %}
@@ -42,7 +41,6 @@
     const satsInput = document.querySelector("#sats");
     const numOfSats = document.querySelector("#num_of_sats");
     const link = document.createElement("a");
-    const topup = document.querySelector("#topup");
     const not = document.querySelector("#not");
     const info = document.querySelector("#info");
     let satNum = 0;
@@ -72,7 +70,6 @@ invoiceForm.addEventListener("submit", (event) => {
                 .then(response => response.text())
                 .then(qrCodeImagePath => {
                     image.width = 500;
-                    topup.classList.add("hidden");
                     not.classList.add("hidden");
                     info.classList.add("hidden");
                     invoiceForm.classList.add("hidden");
