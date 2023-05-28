@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+    />
+    <link
+      rel="shortcut icon"
+      type="image/x-icon"
+      href="{{ url_for('static', filename='favicon.ico') }}"
+    />
+    <link
+      href="{{url_for('static',filename='css/main.css')}}"
+      rel="stylesheet"
+    />
+    {% if text %}
+    <script>
+      setTimeout(function () {
+        const newUrl =
+          window.location.protocol +
+          "//" +
+          window.location.host +
+          window.location.pathname;
+        window.history.replaceState({ path: newUrl }, "", newUrl);
+        document.getElementById("error").style.display = "none";
+      }, 5000);
+    </script>
+    {% endif %}
+
+    <style>
+      html {
+        height: 100%;
+      }
+      .prompt {
+        background: #000000;
+        color: #ffffff;
+      }
+    </style>
+    <title>SparkGPT Admin Panel</title>
+  </head>
+  <body class="bg-gray-900 text-white/90">
+    <div class="h-full">
+      <main class="min-h-full max-h-screen flex">
+        <div
+          id="sidebar"
+          class="bg-gray-950 w-96 sm:w-96 p-2 sm:p-4 border-r border-gray-800"
+        >
+        <a href="/conversations" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-500 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 mt-4">
+            Conversations
+          </a>
+        <a href="/logout" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 mt-4">
+          Logout
+        </a>
+        </div>
+        <div class="min-h-screen p-4 flex w-full">
+          <section class="w-1/2 m-auto">
+            <header class="p-4">
+              <h1 class="text-2xl text-center">SparkGPT Admin Panel</h1>
+              <div class="flex flex-col items-center">
+                <div class="max-w-md mx-2 py-2 px-4 rounded-lg text-white">
+                  <p>
+                    {% if text %}
+                        <div class="col-start-2 col-span-2 w-full px-4 py-5 sm:px-6 text-center">
+                          <div id="black-box">
+                            <span class="text-red-500" id="error">{{ text }}</span>
+                        </div>
+                      </div>
+                    {% endif %}
+                  </p>
+                </div>
+            </div>
+            
+            </header>
+            <div class="max-w-md w-full space-y-8">
+              <div class="text-center">
+              Number of Users: {{ users|length }}
+              </div>
+                <br>
+              {% for user in users %}
+                <div class="flex flex-col items-center">
+                  <div class="max-w-md mx-2 py-2 px-4 rounded-lg {% if user.admin %} bg-red-700 {% else %}bg-blue-700{% endif %} text-white">
+                    
+                    <p>Username:<span class="text-white"> {{ user.username }}</span></p>
+                    <p>Num of Conversations:<span class="text-white"> {{ user.conversation_count }}</span></p>
+                    <form action="/update_sats" method="post">
+                      <input type="hidden" name="username" value="{{ user.username }}">
+                      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                      <p>Sats: <input type="text" pattern="[0-9]*" inputmode="numeric" class="appearance-none text-black w-20" name="sats" value="{{ user.sats }}">
+                      <button type="submit" class="bg-black">Update Sats</button>
+                    </form></p>
+                    <p>Last Login:<span class="text-white"> {{ user.last_login }}</span></p>
+                    <p>Created:<span class="text-white"> {{ user.creation_date }}</span></p>
+                    <p>Admin:<span class="text-white"> {{ 'True' if user.admin == 1 else 'False' }}</span></p>
+                    
+                  </div>
+                </div>
+              {% endfor %}
+        </section>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

@@ -107,7 +107,7 @@ class DatabaseManager:
         sats, 
         recently_paid,
         creation_date,
-        '',
+        'Never logged in',
         False
       ))
     self.conn.commit()
@@ -117,12 +117,12 @@ class DatabaseManager:
     cursor.execute("SELECT * FROM users WHERE username=?", (username, ))
     return cursor.fetchone()
     
-  def get_all_users(self):
+  """def get_all_users(self):
     cursor = self.conn.cursor()
     cursor.execute("SELECT * FROM users")
     rows = cursor.fetchall()
     columns = [col[0] for col in cursor.description]
-    return [dict(zip(columns, row)) for row in rows]
+    return [dict(zip(columns, row)) for row in rows]"""
 
   def update_user(self, username:str, field:str, value):
     self.conn.execute(f"UPDATE users SET {field}=? WHERE username=?",
@@ -234,6 +234,18 @@ class DatabaseManager:
     columns = [col[0] for col in cursor.description]
     return [dict(zip(columns, row)) for row in rows]
 
+
+  def get_user_info(self):
+    cursor = self.conn.cursor()
+    cursor.execute("SELECT username, sats, admin, creation_date, last_login FROM users")
+    rows = cursor.fetchall()
+    columns = [col[0] for col in cursor.description]
+    users = [dict(zip(columns, row)) for row in rows]
+    for user in users:
+      cursor.execute("SELECT COUNT(*) FROM conversations WHERE username=?", (user['username'], ))
+      user['conversation_count'] = cursor.fetchone()[0]
+    return users
+  
   def insert_conversation_history(
     self, 
     conversation_id, 

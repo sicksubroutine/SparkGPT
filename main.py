@@ -39,19 +39,6 @@ def index():
   text = request.args.get("t")
   return render_template("index.html", text=text)
     
-
-@app.route("/conversations", methods=["GET"])
-def conversations():
-  if not session.get("username"):
-    return redirect("/")
-  text = request.args.get("t")
-  username = session["username"]
-  base:DatabaseManager = g.base
-  conv = base.get_conversations_for_user(username)
-  users = base.get_all_users()
-  logging.info(f"Number of users: {len(users)}")
-  return render_template("conv.html", text=text, conversations=conv)
-
 @csrf.include
 @app.route("/signup", methods=["GET"])
 def signup():
@@ -66,7 +53,7 @@ def signup_function():
     return redirect("/")
   try:
     username = request.form["username"]
-    base = g.base
+    base:DatabaseManager = g.base
     user = base.get_user(username)
     if user is not None:
       raise Exception("Username already exists!")
@@ -97,7 +84,8 @@ def signup_function():
       recently_paid=False,
       creation_date=creation_date
     )
-    return redirect("/conversations")
+    text = "Account created! Please login!"
+    return redirect(f"/login?t={text}")
   except Exception as e:
     logging.error(e)
     return redirect(f"/?t={e}")
@@ -116,7 +104,7 @@ def login_function():
     return redirect("/")
   try:
     username = request.form["username"]
-    base = g.base
+    base:DatabaseManager = g.base
     user = base.get_user(username)
     if user is None:
       raise Exception("User does not exist!")
@@ -129,11 +117,39 @@ def login_function():
     session["username"] = username
     session["ip_address"] = user["ip_address"]
     session["uuid"] = user["uuid"]
+    session["force_buy"] = False
     session["identity_hash"] = user["identity_hash"]
+    base.update_user(username, "last_login", DataUtils.time_get())
+    if user["admin"]:
+      session["admin"] = True
+    else:
+      session["admin"] = False
     return redirect("/conversations")
   except Exception as e:
     logging.error(e)
     return redirect(f"/?t={e}")
+  
+  
+@app.route("/admin_panel", methods=["GET"])
+def admin_panel():
+  if not session.get("username") and not session["admin"]:
+    return redirect("/")
+  text = request.args.get("t")
+  base:DatabaseManager = g.base
+  users = base.get_user_info()
+  return render_template("panel.html", users=users, text=text)
+
+@app.route("/update_sats", methods=["POST"])
+def update_sats():
+  if not session.get("username") and not session["admin"]:
+    return redirect("/")
+  sats = request.form["sats"]
+  username = request.form["username"]
+  base:DatabaseManager = g.base
+  base.update_user(username, "sats", sats)
+  return redirect(f"/admin_panel?t=Sats updated for {username}!")
+  
+  
  
 @app.route("/logout")
 def logout():
@@ -248,6 +264,18 @@ def top_up():
 
 ##### Chat Related #####
 
+@app.route("/conversations", methods=["GET"])
+def conversations():
+  if not session.get("username"):
+    return redirect("/")
+  base:DatabaseManager = g.base
+  text = request.args.get("t")
+  username = session["username"]
+  user = base.get_user(username)
+  admin = user["admin"]
+  conv = base.get_conversations_for_user(username)
+  return render_template("conv.html", text=text, conversations=conv, admin=admin)
+
 @app.route("/custom_prompt", methods=["POST"])
 def custom_prompt():
   model = request.form["model"]
@@ -289,7 +317,7 @@ def process():
   if not session.get("username"):
     return redirect("/")
   base:DatabaseManager = g.base
-  username = session.get('username')
+  username = session['username']
   ##########################################################
   try:
     if not request.args.get("custom_prompt"):
@@ -361,15 +389,6 @@ def chat():
   convo = session["convo"]
   ##########################################################
   msg = base.get_messages(convo)
-  more_than_1_msg:bool = len(msg) > 1
-  no_summary:bool = len(base.get_conversation_summaries(convo)["summary"]) == 0
-  if no_summary and more_than_1_msg:
-    long_res, short_res = DataUtils.summary_of_messages(convo)
-    base.update_conversation_summaries(
-      convo, 
-      long_res, 
-      short_res
-    )
   ##########################################################
   messages = []
   for dict in msg:
@@ -432,6 +451,14 @@ def respond():
   if message_over_balance(username, message, model):
     return jsonify({"response": "Message over balance!"})
   msg = base.get_messages(convo)
+  no_summary:bool = len(base.get_conversation_summaries(convo)["summary"]) == 0
+  if no_summary:
+    long_res, short_res = DataUtils.summary_of_messages(message)
+    base.update_conversation_summaries(
+      convo, 
+      long_res, 
+      short_res
+    )
   for dict in msg:
     messages.append(dict)
   messages = [{
