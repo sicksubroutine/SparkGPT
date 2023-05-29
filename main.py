@@ -272,9 +272,8 @@ def conversations():
   text = request.args.get("t")
   username = session["username"]
   user = base.get_user(username)
-  admin = user["admin"]
   conv = base.get_conversations_for_user(username)
-  return render_template("conv.html", text=text, conversations=conv, admin=admin)
+  return render_template("conv.html", text=text, conversations=conv, admin=user["admin"])
 
 @app.route("/custom_prompt", methods=["POST"])
 def custom_prompt():

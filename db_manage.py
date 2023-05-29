@@ -1,6 +1,12 @@
 from flask import g
 import sqlite3
+import os
+from pysqlcipher3 import dbapi2 as sqlite
+from dotenv import load_dotenv
+load_dotenv()
+
 DATABASE = "prime_database.db"
+PASSPHRASE = os.environ["DATABASE_PASSPHRASE"]
 
 class DatabaseManager:
 
@@ -339,12 +345,35 @@ class DatabaseManager:
   def delete_all_payments(self):
     self.conn.execute("DELETE FROM payments")
     self.conn.commit()
+  
+  def is_database_encrypted(self):
+    try:
+        cursor = self.conn.cursor()
+        cursor.execute('PRAGMA cipher_version')
+        result = cursor.fetchone()
+        if result is not None:
+            return True
+        else:
+            return False
+    except Exception as e:
+        print(f"Error checking if database is encrypted: {e}")
+        return False
 
 
 def open_db():
   if 'database' not in g:
-    g.database = sqlite3.connect(DATABASE)
-    g.database.row_factory = sqlite3.Row
+    g.database = sqlite.connect(DATABASE) # type: ignore
+    g.database.execute(f"PRAGMA key='{PASSPHRASE}'")
+    g.database.execute("PRAGMA cipher_compatibility = 4")
+    g.database.execute("PRAGMA kdf_iter = 64000")
+    g.database.execute("PRAGMA cipher_page_size = 4096")
+    g.database.execute("PRAGMA cipher_hmac_algorithm = HMAC_SHA512")
+    g.database.execute("PRAGMA cipher_kdf_algorithm = PBKDF2_HMAC_SHA512")
+    g.database.execute("PRAGMA cipher_use_hmac = ON")
+    g.database.execute("PRAGMA cipher_plaintext_header_size = 0")
+    g.database.execute("PRAGMA journal_mode = WAL")
+    g.database.execute("PRAGMA synchronous = NORMAL")
+    g.database.row_factory = sqlite.Row # type: ignore
   return g.database
 
 
