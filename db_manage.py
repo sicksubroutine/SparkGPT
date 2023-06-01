@@ -1,5 +1,4 @@
 from flask import g
-import sqlite3
 import os
 from pysqlcipher3 import dbapi2 as sqlite
 from dotenv import load_dotenv
@@ -248,7 +247,8 @@ class DatabaseManager:
     columns = [col[0] for col in cursor.description]
     users = [dict(zip(columns, row)) for row in rows]
     for user in users:
-      cursor.execute("SELECT COUNT(*) FROM conversations WHERE username=?", (user['username'], ))
+      username = user['username']
+      cursor.execute("SELECT COUNT(*) FROM conversations WHERE username=?",(username, ))
       user['conversation_count'] = cursor.fetchone()[0]
     return users
   
@@ -282,15 +282,38 @@ class DatabaseManager:
     self.conn.commit()
     return cursor.lastrowid
   
+
+  def delete_oldest_message(self, conversation_id):
+    cursor = self.conn.cursor()
+    cursor.execute("""SELECT content FROM messages WHERE conversation_id=? AND
+                   role!='system' ORDER BY id ASC LIMIT 1""",
+                    (conversation_id, ))
+    message = cursor.fetchone()
+    if not message:
+      return None
+    message_content = message[0]
+    cursor.execute("""DELETE FROM messages WHERE conversation_id=? AND
+                   id IN (SELECT id FROM messages WHERE conversation_id=? AND
+                   role!='system' ORDER BY id ASC LIMIT 1)""",
+                    (conversation_id, conversation_id))
+    self.conn.commit()
+    return message_content
+  
   def delete_message(self, conversation_id, message_id):
     cursor = self.conn.cursor()
     cursor.execute("DELETE FROM messages WHERE conversation_id=? AND id=?", 
                    (conversation_id, message_id))
     self.conn.commit()
+    
+  def delete_conversation_history(self, conversation_id, message_id):
+    cursor = self.conn.cursor()
+    cursor.execute("DELETE FROM conversation_history WHERE conversation_id=? AND id=?", 
+                   (conversation_id, message_id))
+    self.conn.commit()
 
   def get_messages(self, conversation_id) -> list:
     cursor = self.conn.cursor()
-    cursor.execute("SELECT * FROM messages WHERE conversation_id=?",
+    cursor.execute("SELECT * FROM conversation_history WHERE conversation_id=?",
                    (conversation_id, ))
     rows = cursor.fetchall()
     columns = [col[0] for col in cursor.description]

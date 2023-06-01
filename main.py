@@ -25,7 +25,7 @@ else:
 ## TODO: Consider adding a way to login with the Lightning Network.
 ## NOTE: LNURL-AUTH : https://github.com/lnurl/luds/blob/luds/04.md
 ## TODO: Add a way to do streaming messages. (SSE)
-## TODO: Encrypt data in the database.
+## TODO: Fix bug related to deleting messages when the user has a lot of messages.
 
 TOKEN_LIMIT = 3000
 csrf = SeaSurf()
@@ -198,35 +198,6 @@ def qrcode_gen() -> str:
   return path
 
 
-"""
-@app.route("/webhook", methods=["POST"])
-def webhook():
-  data = request.json
-  if data is None:
-    logging.error("No data received.")
-    DataUtils.clean_up_invoices()
-    return "OK"
-  payment_hash = data.get("payment_hash")
-  paid = BitcoinUtils.payment_check(payment_hash)
-  if paid:
-    base:DatabaseManager = g.base
-    base.update_payment(payment_hash, "invoice_status", "paid")
-    text = f"{payment_hash} has been paid!"
-    logging.info(text)
-    payment = base.get_payment(payment_hash)
-    sats = payment["amount"]
-    username = payment["username"]
-    current_user = base.get_user(username)
-    current_balance = current_user["sats"]
-    current_balance += sats
-    base.update_user(username, "sats", current_balance)
-    base.update_user(username, "recently_paid", True)
-    current_user = base.get_user(username)
-    DataUtils.clean_up_invoices()
-  return "OK"
-  """
-
-
 @app.route('/payment_updates')
 def payment_updates():
   payment_hash = session["payment_hash"]
@@ -273,7 +244,12 @@ def conversations():
   username = session["username"]
   user = base.get_user(username)
   conv = base.get_conversations_for_user(username)
-  return render_template("conv.html", text=text, conversations=conv, admin=user["admin"])
+  return render_template(
+    "conv.html", 
+    text=text, 
+    conversations=conv, 
+    admin=user["admin"]
+  )
 
 @app.route("/custom_prompt", methods=["POST"])
 def custom_prompt():
@@ -386,9 +362,7 @@ def chat():
   text = request.args.get("t")
   username = session["username"]
   convo = session["convo"]
-  ##########################################################
   msg = base.get_messages(convo)
-  ##########################################################
   messages = []
   for dict in msg:
     messages.append(dict)
@@ -420,35 +394,53 @@ def chat():
       opening=session.get("opening")
     )  
 
-def message_removal(messages, token_usage, convo) -> None:
+def message_removal(token_usage, convo) -> None:
   base:DatabaseManager = g.base
-  session["token_usage"] = token_usage
   usage_over_limit:bool = token_usage > TOKEN_LIMIT
   if usage_over_limit:
-    oldest_assistant_message = next(
-      (msg for msg in messages if msg["role"] == "assistant"), None)
+    message = base.delete_oldest_message(convo)
+    if message is None:
+      return
     logging.info("Token limit reached. Removing oldest assistant message!")
-    if oldest_assistant_message:
-      oldest_assistant_message_id = oldest_assistant_message["id"]
-      base.delete_message(convo, oldest_assistant_message_id)
-  
+    logging.info(f"Removed message: {message}")
+    messages = base.get_messages(convo)
+    message_contents = []
+    for dict in messages: 
+      message_contents.append(dict["role"])
+      message_contents.append(dict["content"])
+    token_usage = ChatUtils.estimate_tokens(" ".join(message_contents))
+    logging.info(f"New token usage: {token_usage}")
+    if not token_usage:
+      token_usage = 0
+    usage_over_limit:bool = token_usage > TOKEN_LIMIT
+    if usage_over_limit:
+      message_removal(token_usage, convo)
+    
 
 @app.route("/respond", methods=["POST"])
 def respond():
   if not session.get("username"):
     return redirect("/")
   base:DatabaseManager = g.base
+  over_balance = False
   messages = []
   username = session["username"]
   if not does_user_have_enough_sats(username):
     session["force_buy"] = True
-    return jsonify({"response": ""})
+    return jsonify({
+      "over_balance": over_balance, 
+      "response": ""
+    })
   ##########################################################
   convo = session["convo"]
   model = session["model"]
   message = request.form["message"]
   if message_over_balance(username, message, model):
-    return jsonify({"response": "Message over balance!"})
+    over_balance = True
+    return jsonify({
+      "over_balance": over_balance,
+      "response": ""
+    })
   msg = base.get_messages(convo)
   no_summary:bool = len(base.get_conversation_summaries(convo)["summary"]) == 0
   if no_summary:
@@ -475,7 +467,7 @@ def respond():
     "user", 
     message
   )
-  user_string = render_template(
+  user_del_msg = render_template(
     "del_msg.html", 
     message_id=user_message_id
   )
@@ -490,7 +482,7 @@ def respond():
     sats
   )
   ##########################################################
-  message_removal(messages, token_usage, convo)
+  message_removal(token_usage, convo)
   base.insert_message(
     convo, 
     "assistant",
@@ -501,7 +493,7 @@ def respond():
     "assistant", 
     response
   )
-  assistant_string = render_template(
+  assistant_del_msg = render_template(
     "del_msg.html", 
     message_id=assistant_message_id
   )
@@ -511,9 +503,10 @@ def respond():
   )
   return jsonify({
     "response": response,
-    "user_string": user_string,
-    "assistant_string": assistant_string,
-    "sats": sats
+    "user_string": user_del_msg,
+    "assistant_string": assistant_del_msg,
+    "sats": sats,
+    "over_balance": over_balance
   })
 
 
@@ -552,6 +545,10 @@ def delete_msg():
   base:DatabaseManager = g.base
   base.delete_message(
     convo, 
+    msg_id
+  )
+  base.delete_conversation_history(
+    convo,
     msg_id
   )
   return redirect("/chat")

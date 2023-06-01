@@ -47,6 +47,9 @@ function sendMessage(event) {
   })
   .then(response => response.json())
   .then(data => {
+    if (data.over_balance == true) {
+      window.location.reload();
+    }
     assistantMessage.innerHTML = data.response;
     sats.innerHTML = data.sats;
     delUserMessage.innerHTML = data.user_string;

@@ -45,27 +45,27 @@
   <body class="bg-gray-900 text-white/90">
     <div class="h-full">
       <main class="min-h-full max-h-screen flex">
-        <div
-          id="sidebar"
-          class="bg-gray-950 w-96 sm:w-96 p-2 sm:p-4 border-r border-gray-800"
-        >
-        <a href="/login" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 mt-4">
-          Login
-        </a>
-      <a href="/signup" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 mt-4">
-          Sign Up
-      </a>
+        <div id="sidebar" class="bg-gray-950 w-96 sm:w-96 p-2 sm:p-4 border-r border-gray-800">
+            <a href="/login" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 mt-4">
+              Login
+            </a>
+          <a href="/signup" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 mt-4">
+              Sign Up
+          </a>
         </div>
         <div class="min-h-screen p-4 flex w-full">
           <section class="w-1/2 m-auto">
             <header class="p-4">
               <h1 class="text-2xl text-center">SparkGPT</h1>
-              
-            
             </header>
             <div class="max-w-md w-full space-y-8">
               <div class="flex flex-col items-start">
                 <div class="max-w-md mx-2 py-2 px-4 rounded-lg text-white">
+                  <p>Username and Password system have been added. Old system have been broken.</p>
+                  <p>Please logout to clean out old session.</p>
+                  <a href="/logout" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 mt-4">
+                    Logout
+                </a>
                   <p>
                     {% if text %}
                         <div class="col-start-2 col-span-2 w-full px-4 py-5 sm:px-6 text-center">
@@ -76,8 +76,9 @@
                     {% endif %}
                   </p>
                 </div>
+              </div>
             </div>
-        </section>
+          </section>
         </div>
       </main>
     </div>
