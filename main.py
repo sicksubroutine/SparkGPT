@@ -10,6 +10,7 @@ import markdown
 import qrcode 
 import random 
 import logging
+import traceback
 
 logging.basicConfig(filename='logfile.log', level=logging.ERROR)
 
@@ -32,6 +33,7 @@ csrf = SeaSurf()
 csrf.init_app(app)
 socketio = SocketIO(app)
 
+
 @app.route("/", methods=["GET"])
 def index():
   if session.get("username"):
@@ -52,7 +54,7 @@ def signup_function():
   if session.get("username"):
     return redirect("/")
   try:
-    username = request.form["username"]
+    username = request.form["username"].lower()
     base:DatabaseManager = g.base
     user = base.get_user(username)
     if user is not None:
@@ -93,17 +95,21 @@ def signup_function():
 @csrf.include
 @app.route("/login", methods=["GET"])
 def login():
-  if session.get("username"):
-    return redirect("/")
-  text = request.args.get("t")
-  return render_template("login.html", text=text)  
+  try:
+    if session.get("username"):
+      return redirect("/")
+    text = request.args.get("t")
+    return render_template("login.html", text=text)
+  except Exception as e:
+    trace = traceback.format_exc()
+    return render_template("error.html", error=e, trace=trace)
   
 @app.route("/login_function", methods=["POST"])
 def login_function():
   if session.get("username"):
     return redirect("/")
   try:
-    username = request.form["username"]
+    username = request.form["username"].lower()
     base:DatabaseManager = g.base
     user = base.get_user(username)
     if user is None:
@@ -127,7 +133,7 @@ def login_function():
     return redirect("/conversations")
   except Exception as e:
     logging.error(e)
-    return redirect(f"/?t={e}")
+    return redirect(f"/login?t={e}")
   
   
 @app.route("/admin_panel", methods=["GET"])
@@ -237,19 +243,23 @@ def top_up():
 
 @app.route("/conversations", methods=["GET"])
 def conversations():
-  if not session.get("username"):
-    return redirect("/")
-  base:DatabaseManager = g.base
-  text = request.args.get("t")
-  username = session["username"]
-  user = base.get_user(username)
-  conv = base.get_conversations_for_user(username)
-  return render_template(
-    "conv.html", 
-    text=text, 
-    conversations=conv, 
-    admin=user["admin"]
-  )
+  try:
+    if not session.get("username"):
+      return redirect("/")
+    base:DatabaseManager = g.base
+    text = request.args.get("t")
+    username = session["username"]
+    user = base.get_user(username)
+    conv = base.get_conversations_for_user(username)
+    return render_template(
+      "conv.html", 
+      text=text, 
+      conversations=conv, 
+      admin=user["admin"]
+    )
+  except Exception as e:
+    trace = traceback.format_exc()
+    return render_template("error.html", error=e, trace=trace)
 
 @app.route("/custom_prompt", methods=["POST"])
 def custom_prompt():
@@ -356,44 +366,48 @@ def message_over_balance(username:str, message:str, model:str) -> bool:
 
 @app.route("/chat", methods=["GET"])
 def chat():
-  if not session.get("username"):
-    return redirect("/")
-  base:DatabaseManager = g.base
-  text = request.args.get("t")
-  username = session["username"]
-  convo = session["convo"]
-  msg = base.get_messages(convo)
-  messages = []
-  for dict in msg:
-    messages.append(dict)
-  for message in messages:
-    if message["role"] != "system":
-      message["content"] = markdown.markdown(
-      message["content"], 
-      extensions=['fenced_code']
-    )
-  ##########################################################
-  # sats code
-  user = base.get_user(username)
-  sats = user["sats"]
-  if sats is None:
-    sats = 0
-  if session["force_buy"]:
-    session["force_buy"] = False
-    return render_template("pay.html", username=username, info="Less than 100 Sats!")
-  if not does_user_have_enough_sats(username):
-    return render_template("pay.html", username=username, info="Insufficient Sats!")
-  else:
-    return render_template(
-      "chat.html",
-      messages=messages,
-      title=session.get("title"),
-      text=text,
-      sats_left=sats,
-      model=session.get("model"),
-      opening=session.get("opening")
-    )  
-
+  try:
+    if not session.get("username"):
+      return redirect("/")
+    base:DatabaseManager = g.base
+    text = request.args.get("t")
+    username = session["username"]
+    convo = session["convo"]
+    msg = base.get_messages(convo)
+    messages = []
+    for dict in msg:
+      messages.append(dict)
+    for message in messages:
+      if message["role"] != "system":
+        message["content"] = markdown.markdown(
+        message["content"], 
+        extensions=['fenced_code']
+      )
+    ##########################################################
+    # sats code
+    user = base.get_user(username)
+    sats = user["sats"]
+    if sats is None:
+      sats = 0
+    if session["force_buy"]:
+      session["force_buy"] = False
+      return render_template("pay.html", username=username, info="Less than 100 Sats!")
+    if not does_user_have_enough_sats(username):
+      return render_template("pay.html", username=username, info="Insufficient Sats!")
+    else:
+      return render_template(
+        "chat.html",
+        messages=messages,
+        title=session.get("title"),
+        text=text,
+        sats_left=sats,
+        model=session.get("model"),
+        opening=session.get("opening")
+      )  
+  except Exception as e:
+    trace = traceback.format_exc()
+    return render_template("error.html", error=e, trace=trace)
+  
 def message_removal(token_usage, convo) -> None:
   base:DatabaseManager = g.base
   usage_over_limit:bool = token_usage > TOKEN_LIMIT
