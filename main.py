@@ -153,7 +153,7 @@ def update_sats():
   username = request.form["username"]
   base:DatabaseManager = g.base
   base.update_user(username, "sats", sats)
-  return redirect(f"/admin_panel?t=Sats updated for {username}!")
+  return redirect(f"/admin_panel?t=Sats updated to {sats} for {username}!")
   
   
  
