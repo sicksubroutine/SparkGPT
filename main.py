@@ -2,24 +2,21 @@ from flask import render_template, session, request, redirect, send_file, jsonif
 from flask import Response, g
 from flask_socketio import SocketIO
 from flask_seasurf import SeaSurf
-from tools import DataUtils, ChatUtils, BitcoinUtils
+from various_tools import DataUtils, ChatUtils, BitcoinUtils, logger, debug_logger
 from db_manage import DatabaseManager
 from __init__ import app
 import os 
 import markdown 
 import qrcode 
 import random 
-import logging
 import traceback
-
-logging.basicConfig(filename='logfile.log', level=logging.ERROR)
 
 if os.path.exists(".env"):
   from dotenv import load_dotenv
   load_dotenv()
-  logging.debug("Loading .env file.")
+  debug_logger.debug("Loading .env file.")
 else:
-  logging.debug("Not loading .env file.")
+  debug_logger.debug("Not loading .env file.")
 
 ## TODO: Improve current prompts.
 ## TODO: Make the chat app look better across different interfaces. Responsive.
@@ -89,7 +86,7 @@ def signup_function():
     text = "Account created! Please login!"
     return redirect(f"/login?t={text}")
   except Exception as e:
-    logging.error(e)
+    logger.error(e)
     return redirect(f"/?t={e}")
 
 @csrf.include
@@ -102,6 +99,8 @@ def login():
     return render_template("login.html", text=text)
   except Exception as e:
     trace = traceback.format_exc()
+    logger.error(f"Failed to login: {e}")
+    debug_logger.debug(f"Failed to login: {trace}")
     return render_template("error.html", error=e, trace=trace)
   
 @app.route("/login_function", methods=["POST"])
@@ -132,7 +131,9 @@ def login_function():
       session["admin"] = False
     return redirect("/conversations")
   except Exception as e:
-    logging.error(e)
+    trace = traceback.format_exc()
+    logger.error(f"Failed to login: {e}")
+    debug_logger.debug(f"Failed to login: {trace}")
     return redirect(f"/login?t={e}")
   
   
@@ -188,7 +189,9 @@ def get_invoice():
     session["payment_hash"] = payment_hash
     return {"status": "success", "payment_request": payment_request}
   except Exception as e:
-    logging.error(e)
+    trace = traceback.format_exc()
+    logger.error(f"Failed to get invoice: {e}")
+    debug_logger.debug(f"Failed to get invoice: {trace}")
     return {"status": "error"}
 
 
@@ -214,7 +217,7 @@ def payment_updates():
     data = 'data: {"status": "paid"}\n\n'
     base.update_payment(payment_hash, "invoice_status", "paid")
     text = f"{payment_hash} has been paid!"
-    logging.info(text)
+    logger.info(text)
     payment = base.get_payment(payment_hash)
     sats = payment["amount"]
     username = payment["username"]
@@ -259,6 +262,8 @@ def conversations():
     )
   except Exception as e:
     trace = traceback.format_exc()
+    logger.error(f"Failed to load conversations: {e}")
+    debug_logger.debug(f"Failed to load conversations: {trace}")
     return render_template("error.html", error=e, trace=trace)
 
 @app.route("/custom_prompt", methods=["POST"])
@@ -322,7 +327,9 @@ def process():
     if request.args.get("convo"):
       return redirect("/chat")
   except Exception as e:
-    logging.debug(f"Unable to login {e}")
+    trace = traceback.format_exc()
+    logger.error(f"Unable to process process data: {e}")
+    debug_logger.debug(f"Unable to process process data: {trace}")
     text = f"Unable to login! Error: {e}"
     return redirect(f"/?t={text}")
   ##########################################################
@@ -355,11 +362,11 @@ def message_over_balance(username:str, message:str, model:str) -> bool:
   previous_token_usage = session.get("token_usage")
   if previous_token_usage is not None:
     total_tokens = previous_token_usage + message_estimate
-    logging.debug(f"Token Estimation: {message_estimate}")
+    debug_logger.debug(f"Token Estimation: {message_estimate}")
     # check to see if cost is likely to exceed balance.
     pre_cost = BitcoinUtils.get_bitcoin_cost(total_tokens, model)
     if pre_cost > sats:
-        logging.info(f"{pre_cost} sats cost is more than {sats} sats balance")
+        logger.info(f"{pre_cost} sats cost is more than {sats} sats balance")
         session["force_buy"] = True
         return True
   return False
@@ -406,6 +413,8 @@ def chat():
       )  
   except Exception as e:
     trace = traceback.format_exc()
+    logger.error(f"Unable to load chat page: {e}")
+    debug_logger.debug(f"Unable to load chat page: {trace}")
     return render_template("error.html", error=e, trace=trace)
   
 def message_removal(token_usage, convo) -> None:
@@ -415,15 +424,15 @@ def message_removal(token_usage, convo) -> None:
     message = base.delete_oldest_message(convo)
     if message is None:
       return
-    logging.info("Token limit reached. Removing oldest assistant message!")
-    logging.info(f"Removed message: {message}")
+    debug_logger.debug("Token limit reached. Removing oldest assistant message!")
+    debug_logger.debug(f"Removed message: {message}")
     messages = base.get_messages(convo)
     message_contents = []
     for dict in messages: 
       message_contents.append(dict["role"])
       message_contents.append(dict["content"])
     token_usage = ChatUtils.estimate_tokens(" ".join(message_contents))
-    logging.info(f"New token usage: {token_usage}")
+    debug_logger.debug(f"New token usage: {token_usage}")
     if not token_usage:
       token_usage = 0
     usage_over_limit:bool = token_usage > TOKEN_LIMIT
@@ -532,7 +541,7 @@ def reset_messages():
   base:DatabaseManager = g.base
   base.reset_conversation(convo)
   base.reset_conversation_summaries(convo)
-  logging.info("summary reset")
+  logger.info("summary reset")
   session.pop("prompt", None)
   session.pop("title", None)
   session.pop("convo", None)

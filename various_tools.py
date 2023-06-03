@@ -1,5 +1,6 @@
 from flask import g, Request
 from datetime import datetime as dt
+from setup_log import setup_logging
 import string
 import random
 import uuid 
@@ -10,7 +11,7 @@ import time
 import requests 
 import logging
 
-logging.basicConfig(filename='logfile.log', level=logging.INFO)
+logger, debug_logger = setup_logging()
 
 API_KEY = os.environ['LNBITS_API']
 URL = "https://legend.lnbits.com/api/v1/payments/"

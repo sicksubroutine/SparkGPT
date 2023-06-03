@@ -1,8 +1,7 @@
 from flask import g
 import os
 from pysqlcipher3 import dbapi2 as sqlite
-from dotenv import load_dotenv
-load_dotenv()
+#from various_tools import logger, debug_logger
 
 DATABASE = "prime_database.db"
 PASSPHRASE = os.environ["DATABASE_PASSPHRASE"]
