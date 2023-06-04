@@ -96,8 +96,6 @@ def login():
     if session.get("username"):
       return redirect("/")
     text = request.args.get("t")
-    base = g.base
-    base.update_user("chaz_sparkGPT", "username", "chaz_sparkgpt")
     return render_template("login.html", text=text)
   except Exception as e:
     trace = traceback.format_exc()
