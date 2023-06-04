@@ -96,6 +96,8 @@ def login():
     if session.get("username"):
       return redirect("/")
     text = request.args.get("t")
+    base = g.base
+    base.update_user("chaz_sparkGPT", "username", "chaz_sparkgpt")
     return render_template("login.html", text=text)
   except Exception as e:
     trace = traceback.format_exc()
@@ -144,7 +146,6 @@ def admin_panel():
   username = session["username"]
   text = request.args.get("t")
   base:DatabaseManager = g.base
-  base.delete_user("chaz_sparkgpt")
   users = base.get_user_info()
   return render_template("panel.html", users=users, text=text, username=username)
 
