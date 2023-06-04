@@ -225,6 +225,9 @@ class DataUtils:
     response = response.replace("$", "")
     response = response.replace("%", "")
     response = response.replace("^", "")
+    response = response.replace("&", "")
+    response = response.replace('"', "")
+    response = response.replace("'", "")
     return longer_response, response
 
   @staticmethod
@@ -272,7 +275,7 @@ class DataUtils:
 class ChatUtils:
 
   @staticmethod
-  def prompt_get(prompt: str) -> dict:
+  def prompt_get(chosen_prompt: str) -> dict:
     """
     Retrieves a prompt and its associated title based on the given prompt key.
 
@@ -284,63 +287,57 @@ class ChatUtils:
             The dictionary has the following structure:
             {
                 'prompt': 'The retrieved prompt',
-                'title': 'The associated title'
+                'title': 'The associated title',
+                'opening': 'The opening message'
             }
       If the given prompt key is invalid, a default invalid prompt 
       and title will be returned.
     """
-    prompt_dict = {
-      "prompt4chan": {
-        "prompt": os.environ['4CHANPROMPT'],
-        "title": "4Chan Green Text",
-        "opening": "Welcome to Green Text. What's your boggle?"
-      },
-      "IFSPrompt": {
-        "prompt": os.environ['IFSPROMPT'],
-        "title": "Internal Family Systems AI",
-        "opening": "Welcome to IFS AI. How are you feeling today?"
-      },
-      "KetoPrompt": {
-        "prompt": os.environ['KETOPROMPT'],
-        "title": "Keto Helper",
-        "opening": "Welcome to the Keto Helper. Do you have any Keto questions?"
-      },
-      "CodingBuddy": {
-        "prompt": os.environ['CODINGBUDDYPROMPT'],
-        "title": "Coding Buddy",
-        "opening": "Hello! I'm your Coding Buddy. What are you working on today?"
-      },
-      "TherapistPrompt": {
-        "prompt": os.environ['THERAPISTPROMPT'],
-        "title": "Therapist Bot",
-        "opening": "Welcome to Therapist Bot. What's on your mind today?"
-      },
-      "foodMenuPrompt": {
-        "prompt": os.environ['FOODMENUPROMPT'],
-        "title": "Menu Assistant 8000",
-        "opening": "Welcome to Menu Assistant 8000. Do you want to create a breakfast, lunch, or dinner menu?" # noqa
-        
-      },
-      "HelpfulPrompt": {
-        "prompt": os.environ['HELPFULPROMPT'],
-        "title": "General AI",
-        "opening": "Hello! I'm a Generally Helpful AI. How can I help you?"
-      },
-      "AI_Talks_To_Self": {
-        "prompt": os.environ['TALKTOSELFPROMPT'],
-        "title": "Recursive AI"
-      },
-      "CustomPrompt": {
-        "prompt": "",
-        "title": "Custom Prompt"
-      }
+    match chosen_prompt:
+      case "prompt4chan":
+        prompt = os.environ['4CHANPROMPT']
+        title = "4Chan Green Text"
+        opening = "Welcome to Green Text. What's your boggle?"
+      case "IFSPrompt":
+        prompt = os.environ['IFSPROMPT']
+        title = "Internal Family Systems AI"
+        opening = "Welcome to IFS AI. How are you feeling today?"
+      case "KetoPrompt":
+        prompt = os.environ['KETOPROMPT']
+        title = "Keto Helper"
+        opening = "Welcome to the Keto Helper. Do you have any Keto questions?"
+      case "CodingBuddy":
+        prompt = os.environ['CODINGBUDDYPROMPT']
+        title = "Coding Buddy"
+        opening = "Hello! I'm your Coding Buddy. What are you working on today?"
+      case "TherapistPrompt":
+        prompt = os.environ['THERAPISTPROMPT']
+        title = "Therapist Bot"
+        opening = "Welcome to Therapist Bot. What's on your mind today?"
+      case "foodMenuPrompt":
+        prompt = os.environ['FOODMENUPROMPT']
+        title = "Menu Assistant 8000"
+        opening = "Welcome to Menu Assistant 8000. Do you want to create a breakfast, lunch, or dinner menu?" # noqa
+      case "HelpfulPrompt":
+        prompt = os.environ['HELPFULPROMPT']
+        title = "General AI"
+        opening = "Hello! I'm a Generally Helpful AI. How can I help you?"
+      case "AI_Talks_To_Self":
+        prompt = os.environ['TALKTOSELFPROMPT']
+        title = "Recursive AI"
+      case "CustomPrompt":
+        prompt = ""
+        title = "Custom Prompt"
+      case _:
+        prompt = "Invalid Prompt"
+        title = "Invalid Title"
+        opening = "Invalid Opening"
+    return {
+      'prompt': prompt,
+      'title': title,
+      'opening': opening
     }
-    return prompt_dict.get(prompt, {
-      'prompt': 'Invalid Prompt',
-      'title': 'Invalid Title',
-      'opening': 'Invalid Opening'
-    })
-
+    
   @staticmethod
   def openai_response(messages: list, model: str = "gpt-3.5-turbo") -> tuple:
     """
