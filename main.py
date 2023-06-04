@@ -141,10 +141,12 @@ def login_function():
 def admin_panel():
   if not session.get("username") and not session["admin"]:
     return redirect("/")
+  username = session["username"]
   text = request.args.get("t")
   base:DatabaseManager = g.base
+  base.delete_user("chaz_sparkgpt")
   users = base.get_user_info()
-  return render_template("panel.html", users=users, text=text)
+  return render_template("panel.html", users=users, text=text, username=username)
 
 @app.route("/update_sats", methods=["POST"])
 def update_sats():

@@ -281,7 +281,6 @@ class DatabaseManager:
     self.conn.commit()
     return cursor.lastrowid
   
-
   def delete_oldest_message(self, conversation_id):
     cursor = self.conn.cursor()
     cursor.execute("""SELECT content FROM messages WHERE conversation_id=? AND
