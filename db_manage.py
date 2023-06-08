@@ -1,7 +1,16 @@
 from flask import g
 import os
 from pysqlcipher3 import dbapi2 as sqlite
-#from various_tools import logger, debug_logger
+from pathlib import Path
+
+env_file = Path(".env")
+
+if env_file.is_file():
+  from dotenv import load_dotenv
+  load_dotenv()
+  print(" * Loading .env file")
+else:
+  print(" * Not loading .env file")
 
 DATABASE = "prime_database.db"
 PASSPHRASE = os.environ["DATABASE_PASSPHRASE"]

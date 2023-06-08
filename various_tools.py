@@ -1,6 +1,6 @@
 from flask import g, Request
 from datetime import datetime as dt
-from setup_log import setup_logging
+from __init__ import debug_logger, logger
 import string
 import random
 import uuid 
@@ -8,10 +8,7 @@ import hashlib
 import os
 import openai 
 import time 
-import requests 
-import logging
-
-logger, debug_logger = setup_logging()
+import requests
 
 API_KEY = os.environ['LNBITS_API']
 URL = "https://legend.lnbits.com/api/v1/payments/"
@@ -49,7 +46,7 @@ class DataUtils:
       response_json = response.json()
       return response, response_json
     except Exception as e:
-      logging.error(f"API request failed: {e}")
+      logger.error(f"API request failed: {e}")
       return None, None
 
   @staticmethod
@@ -114,7 +111,7 @@ class DataUtils:
     try:
       return request.headers.get('X-Forwarded-For', '').split(',')[0].strip()
     except Exception as e:
-      logging.error(f"Failed to get IP Address: {e}")
+      logger.error(f"Failed to get IP Address: {e}")
       return "Erroring getting IP Address"
 
   @staticmethod
@@ -371,29 +368,29 @@ class ChatUtils:
     token_usage = 0
     while retry:
       try:
-        logging.info("Attempting to send message to assistant...")
+        debug_logger.debug("Attempting to send message to assistant...")
         response = openai.ChatCompletion.create(model=model, messages=messages)
         assistant_response = response["choices"][0]["message"]["content"] # type: ignore
         token_usage = response["usage"]["total_tokens"] # type: ignore
-        logging.info(response["usage"]) # type: ignore
+        debug_logger.debug(response["usage"]) # type: ignore
         retry = False
         break
       except openai.error.APIError as e: # type: ignore
-        logging.error(f"OpenAI API returned an API Error: {e}")
+        logger.error(f"OpenAI API returned an API Error: {e}")
         retry_count += 1
         if retry_count >= max_retries:
           retry = False
           break
         time.sleep(backoff_time * 2**retry_count)
       except openai.error.APIConnectionError as e: # type: ignore
-        logging.error(f"Failed to connect to OpenAI API: {e}")
+        logger.error(f"Failed to connect to OpenAI API: {e}")
         retry_count += 1
         if retry_count >= max_retries:
           retry = False
           break
         time.sleep(backoff_time * 2**retry_count)
       except openai.error.RateLimitError as e: # type: ignore
-        logging.error(f"OpenAI API request exceeded rate limit: {e}")
+        logger.error(f"OpenAI API request exceeded rate limit: {e}")
         retry_count += 1
         if retry_count >= max_retries:
           retry = False
@@ -432,7 +429,7 @@ class ChatUtils:
       "min": min
     }
     if method not in methods:
-        logging.error("Invalid method.")
+        logger.error("Invalid method.")
         return None
     output = methods[method](tokens_count_per_word_est, tokens_count_char_est)
     return int(output) + 5
@@ -473,7 +470,7 @@ class BitcoinUtils:
       price = round(((tokens / 1000) * cost / round(float(data[0]))) / SATS)
       return price
     except Exception as e:
-      logging.error(f"Failed to calculate Bitcoin cost: {e}")
+      logger.error(f"Failed to calculate Bitcoin cost: {e}")
       return None
 
   @staticmethod
@@ -510,7 +507,7 @@ class BitcoinUtils:
         raise Exception("Error:", response.status_code, response.reason)
       return response_json
     except Exception as e:
-      logging.error(f"Failed to generate Lightning invoice: {e}")
+      logger.error(f"Failed to generate Lightning invoice: {e}")
       return {"Error": "Error generating Lightning invoice."}
 
   @staticmethod
@@ -541,6 +538,6 @@ class BitcoinUtils:
         raise Exception("Error:", response.status_code, response.reason)
       return response_json.get("paid")
     except Exception as e:
-      logging.error(e)
+      logger.error(e)
       return False
 

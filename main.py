@@ -2,21 +2,14 @@ from flask import render_template, session, request, redirect, send_file, jsonif
 from flask import Response, g
 from flask_socketio import SocketIO
 from flask_seasurf import SeaSurf
-from various_tools import DataUtils, ChatUtils, BitcoinUtils, logger, debug_logger
+from various_tools import DataUtils, ChatUtils, BitcoinUtils
 from db_manage import DatabaseManager
-from __init__ import app
+from __init__ import app, logger, debug_logger
 import os 
 import markdown 
 import qrcode 
 import random 
 import traceback
-
-if os.path.exists(".env"):
-  from dotenv import load_dotenv
-  load_dotenv()
-  debug_logger.debug("Loading .env file.")
-else:
-  debug_logger.debug("Not loading .env file.")
 
 ## TODO: Improve current prompts.
 ## TODO: Make the chat app look better across different interfaces. Responsive.
@@ -29,7 +22,6 @@ TOKEN_LIMIT = 3000
 csrf = SeaSurf()
 csrf.init_app(app)
 socketio = SocketIO(app)
-
 
 @app.route("/", methods=["GET"])
 def index():

@@ -9,4 +9,6 @@ A relatively simple ChatGPT app using the ChatGPT API and LNBits API to accept B
 * Filename of the markdown file is ChatGPT generated based upon your initial message.
 * Ability to have multiple concurrent chats going at the same time. Front page will have a small summary of the ongoing chat as well as the current prompt being used.
 * Ability to change between GPT3.5 TURBO and GPT 4.
-* Syntax highlighting with Prism JS for code blocks that might occur.
+* Syntax highlighting with PrismJS for code blocks that might occur.
+* Basic username and password authorization flow.
+* Basic admin panel for user maintenance. 
