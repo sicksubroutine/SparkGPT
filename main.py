@@ -16,7 +16,6 @@ import traceback
 ## TODO: Consider adding a way to login with the Lightning Network.
 ## NOTE: LNURL-AUTH : https://github.com/lnurl/luds/blob/luds/04.md
 ## TODO: Add a way to do streaming messages. (SSE)
-## TODO: Fix bug related to deleting messages when the user has a lot of messages.
 
 TOKEN_LIMIT = 3000
 csrf = SeaSurf()

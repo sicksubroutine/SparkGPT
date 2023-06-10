@@ -5,7 +5,7 @@ from pathlib import Path
 
 env_file = Path(".env")
 
-if env_file.is_file():
+if env_file.exists():
   from dotenv import load_dotenv
   load_dotenv()
   print(" * Loading .env file")
