@@ -1,20 +1,18 @@
 from flask import g, Request
 from datetime import datetime as dt
-from __init__ import debug_logger, logger
 import string
 import random
-import uuid
-import hashlib
 import os
 import openai
 import time
 import requests
+from constants import LNBITS_URL, HEADERS, SATS, SECRETKEY, LNBITS_URL
+from logging import Logger
+import logging
 
-API_KEY = os.environ["LNBITS_API"]
-URL = "https://legend.lnbits.com/api/v1/payments/"
-HEADERS = {"X-Api-Key": API_KEY, "Content-Type": "application/json"}
-SATS = 0.00000001
-SECRETKEY = os.environ["GPT_API"]
+logger: Logger = logging.getLogger(__name__)
+
+
 openai.api_key = f"{SECRETKEY}"
 
 
@@ -298,11 +296,11 @@ class ChatUtils:
         token_usage = 0
         while retry:
             try:
-                debug_logger.debug("Attempting to send message to assistant...")
+                logger.debug("Attempting to send message to assistant...")
                 response = openai.ChatCompletion.create(model=model, messages=messages)
                 assistant_response = response["choices"][0]["message"]["content"]  # type: ignore
                 token_usage = response["usage"]["total_tokens"]  # type: ignore
-                debug_logger.debug(response["usage"])  # type: ignore
+                logger.debug(response["usage"])  # type: ignore
                 retry = False
                 break
             except openai.error.APIError as e:  # type: ignore
@@ -422,7 +420,7 @@ class BitcoinUtils:
         data = {"out": False, "amount": sats, "memo": memo, "expiry": 1500}
         try:
             response, response_json = DataUtils.api_request(
-                "POST", URL, headers=HEADERS, json=data
+                "POST", LNBITS_URL, headers=HEADERS, json=data
             )
             if not response.ok:
                 raise Exception("Error:", response.status_code, response.reason)

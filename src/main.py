@@ -3,7 +3,7 @@ from flask import Response, g
 from flask_socketio import SocketIO
 from flask_seasurf import SeaSurf
 from various_tools import DataUtils, ChatUtils, BitcoinUtils
-from db_manage import DatabaseManager
+from src.db_manage import DatabaseManager
 from __init__ import app
 import os
 import markdown
@@ -12,7 +12,7 @@ import random
 import traceback
 import logging
 from logging import Logger
-from creds import Credentials
+from src.creds import Credentials
 from session import SessionHandler
 
 logger: Logger = logging.getLogger("SparkGPT")

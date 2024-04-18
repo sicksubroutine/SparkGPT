@@ -1,6 +1,6 @@
-from db_manage import DatabaseManager
+from src.db_manage import DatabaseManager
 from various_tools import time_get
-from creds import Credentials
+from src.creds import Credentials
 
 
 class SessionHandler:
@@ -14,11 +14,14 @@ class SessionHandler:
         self.user = database.get_user(self.username)
 
     def do_the_things(self):
-        if self.user is None:
-            return {"error": "User does not exist."}
-        self.update_session()
-        self.update_user_time()
-        self.handle_admin()
+        try:
+            if self.user is None:
+                return {"error": "User does not exist."}
+            self.update_session()
+            self.update_user_time()
+            self.handle_admin()
+        except Exception as e:
+            return {"error": f"Failed to update session: {e}"}
         return {"success": "Session updated."}
 
     def update_session(self):

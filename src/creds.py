@@ -1,5 +1,5 @@
 from requests import Request
-from db_manage import DatabaseManager
+from src.db_manage import DatabaseManager
 import random
 import string
 import hashlib

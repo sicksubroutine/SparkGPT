@@ -1,1 +1,0 @@
-TOKEN_LIMIT = 3000
