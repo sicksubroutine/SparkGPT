@@ -1,5 +1,5 @@
 from src.db_manage import DatabaseManager
-from various_tools import time_get
+from utils.data_utils import time_get
 from src.creds import Credentials
 
 

@@ -9,7 +9,7 @@
 __pycache__/
 .env
 
-**/.venv*
+*venv*
 markdown/
 .breakpoints
 .replit

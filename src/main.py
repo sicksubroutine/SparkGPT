@@ -1,10 +1,18 @@
+from __init__ import app, csrf, socketio
+from constants import TOKEN_LIMIT
+from database_handler import db
 from flask import render_template, session, request, redirect, send_file, jsonify
 from flask import Response, g
-from flask_socketio import SocketIO
-from flask_seasurf import SeaSurf
-from various_tools import DataUtils, ChatUtils, BitcoinUtils
-from src.db_manage import DatabaseManager
-from __init__ import app
+from db_manage import DatabaseManager
+from utils.bitcoin_utils import get_lightning_invoice, get_bitcoin_cost, payment_check
+from utils.data_utils import (
+    summary_of_messages,
+    openai_response,
+    check_old_markdown,
+    clean_up_invoices,
+    export_as_markdown,
+)
+from utils.chat_utils import prompt_get, estimate_tokens
 import os
 import markdown
 import qrcode
@@ -14,138 +22,133 @@ import logging
 from logging import Logger
 from src.creds import Credentials
 from session import SessionHandler
+from utils.tasks.task_queue import TaskQueue
+from utils.tasks.task_class import Task
+
 
 logger: Logger = logging.getLogger("SparkGPT")
 
-from constants import TOKEN_LIMIT
 
-csrf = SeaSurf()
-csrf.init_app(app)
-socketio = SocketIO(app)
+class SparkGPT:
+    def __init__(self):
+        self.database = ...
+        self.task_queue = TaskQueue()
 
+    @app.route("/", methods=["GET"])
+    def index(self):
+        if session.get("username"):
+            return redirect("/conversations")
+        text = request.args.get("t")
+        return render_template("index.html", text=text)
 
-@app.route("/", methods=["GET"])
-def index():
-    if session.get("username"):
-        return redirect("/conversations")
-    text = request.args.get("t")
-    return render_template("index.html", text=text)
-
-
-@csrf.include
-@app.route("/signup", methods=["GET"])
-def signup():
-    if session.get("username"):
-        return redirect("/")
-    text = request.args.get("t")
-    return render_template("signup.html", text=text)
-
-
-@app.route("/signup_function", methods=["POST"])
-def signup_function():
-    if session.get("username"):
-        return redirect("/")
-    try:
-        creds = Credentials(
-            request=request,
-            database=g.base,
-        )
-        response = creds.create_new_user()
-        # check if user was created successfully {"success": "User created."}
-        if "error" in response:
-            text = response["error"]
-            return redirect(f"/signup?t={text}")
-        text = "Account created! Please login!"
-        return redirect(f"/login?t={text}")
-    except Exception as e:
-        logger.error(e)
-        return redirect(f"/?t={e}")
-
-
-@csrf.include
-@app.route("/login", methods=["GET"])
-def login():
-    try:
+    @csrf.include
+    @app.route("/signup", methods=["GET"])
+    def signup(self):
         if session.get("username"):
             return redirect("/")
         text = request.args.get("t")
-        return render_template("login.html", text=text)
-    except Exception as e:
-        trace = traceback.format_exc()
-        logger.error(f"Failed to login: {e}")
-        logger.debug(f"Failed to login: {trace}")
-        return render_template("error.html", error=e, trace=trace)
+        return render_template("signup.html", text=text)
 
-
-@app.route("/login_function", methods=["POST"])
-def login_function():
-    if session.get("username"):
-        return redirect("/")
-    try:
-        creds = Credentials(
-            request=request,
-            database=g.base,
-        )
-        response = creds.login_current_user()
-        if "error" in response:
-            text = response["error"]
+    @app.route("/signup_function", methods=["POST"])
+    def signup_function(self):
+        if session.get("username"):
+            return redirect("/")
+        try:
+            creds = Credentials(
+                request=request,
+                database=g.base,
+            )
+            response = creds.create_new_user()
+            # check if user was created successfully {"success": "User created."}
+            if "error" in response:
+                text = response["error"]
+                return redirect(f"/signup?t={text}")
+            text = "Account created! Please login!"
             return redirect(f"/login?t={text}")
-        session = SessionHandler(
-            session=session,
-            database=g.base,
-            creds=creds,
-        )
-        response = session.do_the_things()
-        if "error" in response:
-            text = response["error"]
-            return redirect(f"/login?t={text}")
-        return redirect("/conversations")
-    except Exception as e:
-        trace = traceback.format_exc()
-        logger.error(f"Failed to login: {e}")
-        logger.debug(f"Failed to login: {trace}")
-        return redirect(f"/login?t={e}")
+        except Exception as e:
+            logger.error(e)
+            return redirect(f"/?t={e}")
 
+    @csrf.include
+    @app.route("/login", methods=["GET"])
+    def login(self):
+        try:
+            if session.get("username"):
+                return redirect("/")
+            text = request.args.get("t")
+            return render_template("login.html", text=text)
+        except Exception as e:
+            trace = traceback.format_exc()
+            logger.error(f"Failed to login: {e}")
+            logger.debug(f"Failed to login: {trace}")
+            return render_template("error.html", error=e, trace=trace)
 
-@app.route("/admin_panel", methods=["GET"])
-def admin_panel():
-    if not session.get("username") and not session["admin"]:
+    @app.route("/login_function", methods=["POST"])
+    def login_function(self):
+        if session.get("username"):
+            return redirect("/")
+        try:
+            creds = Credentials(
+                request=request,
+                database=g.base,
+            )
+            response = creds.login_current_user()
+            if "error" in response:
+                text = response["error"]
+                return redirect(f"/login?t={text}")
+            session = SessionHandler(
+                session=session,
+                database=g.base,
+                creds=creds,
+            )
+            response = session.do_the_things()
+            if "error" in response:
+                text = response["error"]
+                return redirect(f"/login?t={text}")
+            return redirect("/conversations")
+        except Exception as e:
+            trace = traceback.format_exc()
+            logger.error(f"Failed to login: {e}")
+            logger.debug(f"Failed to login: {trace}")
+            return redirect(f"/login?t={e}")
+
+    @app.route("/admin_panel", methods=["GET"])
+    def admin_panel(self):
+        if not session.get("username") and not session["admin"]:
+            return redirect("/")
+        username = session["username"]
+        text = request.args.get("t")
+        base: DatabaseManager = g.base
+        users = base.get_user_info()
+        return render_template("panel.html", users=users, text=text, username=username)
+
+    @app.route("/update_sats", methods=["POST"])
+    def update_sats(self):
+        if not session.get("username") and not session["admin"]:
+            return redirect("/")
+        sats = request.form["sats"]
+        username = request.form["username"]
+        base: DatabaseManager = g.base
+        base.update_user(username, "sats", sats)
+        return redirect(f"/admin_panel?t=Sats updated to {sats} for {username}!")
+
+    @app.route("/logout")
+    def logout():
+        session.clear()
         return redirect("/")
-    username = session["username"]
-    text = request.args.get("t")
-    base: DatabaseManager = g.base
-    users = base.get_user_info()
-    return render_template("panel.html", users=users, text=text, username=username)
-
-
-@app.route("/update_sats", methods=["POST"])
-def update_sats():
-    if not session.get("username") and not session["admin"]:
-        return redirect("/")
-    sats = request.form["sats"]
-    username = request.form["username"]
-    base: DatabaseManager = g.base
-    base.update_user(username, "sats", sats)
-    return redirect(f"/admin_panel?t=Sats updated to {sats} for {username}!")
-
-
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect("/")
 
 
 ##### Bitcoin Related #####
 
 
 @app.route("/get_invoice", methods=["GET"])
-def get_invoice():
+def get_invoice(self):
     try:
         sats = int(request.args["sats"])
         memo = f"Payment for {sats} Sats"
         session.pop("payment_request", None)
         session.pop("payment_hash", None)
-        invoice = BitcoinUtils.get_lightning_invoice(sats, memo)
+        invoice = get_lightning_invoice(sats, memo)
         payment_request = invoice["payment_request"]
         payment_hash = invoice["payment_hash"]
         username = session["username"]
@@ -185,7 +188,7 @@ def payment_updates():
     payment_hash = session["payment_hash"]
     base: DatabaseManager = g.base
     # invoice_status = base.get_invoice_status(payment_hash)
-    paid = BitcoinUtils.payment_check(payment_hash)
+    paid = payment_check(payment_hash)
     if paid:
         data = 'data: {"status": "paid"}\n\n'
         base.update_payment(payment_hash, "invoice_status", "paid")
@@ -200,7 +203,7 @@ def payment_updates():
         base.update_user(username, "sats", current_balance)
         base.update_user(username, "recently_paid", True)
         current_user = base.get_user(username)
-        DataUtils.clean_up_invoices()
+        clean_up_invoices()
     else:
         data = 'data: {"status": "not paid"}\n\n'
     return Response(data, content_type="text/event-stream")
@@ -255,7 +258,7 @@ def custom_prompt():
 def prompt():
     model = request.form["model"]
     prompt = request.form["prompt"]
-    prompt_dict = ChatUtils.prompt_get(prompt)
+    prompt_dict = prompt_get(prompt)
     session["title"] = prompt_dict["title"]
     session["prompt"] = prompt
     session["model"] = model
@@ -299,8 +302,8 @@ def process():
             opening = f'Custom Prompt: {session["custom_prompt"]}'
             session["opening"] = opening
         else:
-            prompt_text = ChatUtils.prompt_get(prompt)["prompt"]
-            opening = ChatUtils.prompt_get(prompt)["opening"]
+            prompt_text = prompt_get(prompt)["prompt"]
+            opening = prompt_get(prompt)["opening"]
             session["opening"] = opening
         if request.args.get("convo"):
             return redirect("/chat")
@@ -332,13 +335,13 @@ def does_user_have_enough_sats(username: str) -> bool:
 def message_over_balance(username: str, message: str, model: str) -> bool:
     base: DatabaseManager = g.base
     sats = base.get_user(username)["sats"] - 99
-    message_estimate = ChatUtils.estimate_tokens(message)
+    message_estimate = estimate_tokens(message)
     previous_token_usage = session.get("token_usage")
     if previous_token_usage is not None:
         total_tokens = previous_token_usage + message_estimate
         logger.debug(f"Token Estimation: {message_estimate}")
         # check to see if cost is likely to exceed balance.
-        pre_cost = BitcoinUtils.get_bitcoin_cost(total_tokens, model)
+        pre_cost = get_bitcoin_cost(total_tokens, model)
         if pre_cost > sats:
             logger.info(f"{pre_cost} sats cost is more than {sats} sats balance")
             session["force_buy"] = True
@@ -357,8 +360,8 @@ def chat():
         convo = session["convo"]
         msg = base.get_messages(convo)
         messages = []
-        for dict in msg:
-            messages.append(dict)
+        for d in msg:
+            messages.append(d)
         for message in messages:
             if message["role"] != "system":
                 message["content"] = markdown.markdown(
@@ -410,7 +413,7 @@ def message_removal(token_usage, convo) -> None:
         for dict in messages:
             message_contents.append(dict["role"])
             message_contents.append(dict["content"])
-        token_usage = ChatUtils.estimate_tokens(" ".join(message_contents))
+        token_usage = estimate_tokens(" ".join(message_contents))
         logger.debug(f"New token usage: {token_usage}")
         if not token_usage:
             token_usage = 0
@@ -440,7 +443,7 @@ def respond():
     msg = base.get_messages(convo)
     no_summary: bool = len(base.get_conversation_summaries(convo)["summary"]) == 0
     if no_summary:
-        long_res, short_res = DataUtils.summary_of_messages(message)
+        long_res, short_res = summary_of_messages(message)
         base.update_conversation_summaries(convo, long_res, short_res)
     for dict in msg:
         messages.append(dict)
@@ -451,9 +454,15 @@ def respond():
     base.insert_message(convo, "user", message)
     user_message_id = base.insert_conversation_history(convo, "user", message)
     user_del_msg = render_template("del_msg.html", message_id=user_message_id)
-    response, token_usage = ChatUtils.openai_response(messages, model)
+    openai_task = Task(
+        task_name="openai_response",
+        task_func=openai_response,
+        messages=messages,
+        model=model,
+    )
+    response, token_usage = openai_response(messages, model)
     ##########################################################
-    cost = BitcoinUtils.get_bitcoin_cost(token_usage, model)
+    cost = get_bitcoin_cost(token_usage, model)
     database_sats = base.get_user(username)["sats"]
     sats = database_sats - cost
     base.update_user(username, "sats", sats)
@@ -518,11 +527,11 @@ def delete_msg():
 def export_messages():
     if not session.get("username"):
         return redirect("/")
-    DataUtils.check_old_markdown()
+    check_old_markdown()
     convo = session["convo"]
     title = session["title"]
     model = session["model"]
-    path_filename = DataUtils.export_as_markdown(convo, title, model)
+    path_filename = export_as_markdown(convo, title, model)
     return send_file(path_filename, as_attachment=True)
 
 
