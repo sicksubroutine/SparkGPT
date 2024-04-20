@@ -1,17 +1,16 @@
 from requests import Request
-from src.db_manage import DatabaseManager
 import random
 import string
 import hashlib
 import uuid
 import logging
 from logging import Logger
-from src.utils.various_tools import time_get
+from utils.data_utils import time_get
 
 logger: Logger = logging.getLogger(__name__)
 
 
-def get_IP_Address(request: Request) -> str:
+def get_ip_address(request: Request) -> str:
     """
     Retrieves the IP address of the user.
 
@@ -55,7 +54,7 @@ def hash_func(*args: tuple) -> str:
     return hashlib.sha256("".join(args).encode()).hexdigest()
 
 
-def saltGet() -> str:
+def salt_get() -> str:
     """
     Generate a random salt consisting of uppercase letters, lowercase letters,
     digits, and punctuation. The salt is 30 characters long.
@@ -71,14 +70,13 @@ def saltGet() -> str:
 
 
 class Credentials:
-    def __init__(self, request: Request, database: DatabaseManager):
+    def __init__(self, request):
         self.request = request
         self.headers: dict = request.headers
         self.form: dict[str, str] = request.form
-        self.database = database
         self.user_agent = self.headers.get("User-Agent")
         self.uuid = uuid_func()
-        self.ip_address = get_IP_Address(request)
+        self.ip_address = get_ip_address(request)
 
     def login_current_user(self):
         try:
@@ -106,7 +104,7 @@ class Credentials:
             password_confirm = self.form["password_confirm"]
             if password != password_confirm:
                 return {"error": "Passwords do not match."}
-            salt = saltGet()
+            salt = salt_get()
             password_hash = hash_func(password, salt)
             identity_hash = hash_func(self.username, self.uuid)
 

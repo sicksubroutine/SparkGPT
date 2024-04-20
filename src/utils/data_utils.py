@@ -1,4 +1,5 @@
 from datetime import datetime as dt
+import datetime
 import random
 import string
 from pathlib import Path
@@ -9,14 +10,21 @@ from constants import MARKDOWN_DIR
 from utils.chat_utils import openai_response
 from db_manage import g
 from typing import Tuple
+import qrcode
 
 logger: Logger = logging.getLogger(__name__)
 
 
 def time_get() -> str:
-    time = dt.now()
-    string_time = time.strftime("%m-%d-%Y %I:%M:%S %p")
-    return string_time
+    return dt.now().strftime("%m-%d-%Y %I:%M:%S %p")
+
+
+def time_get_unix() -> int:
+    return int(dt.now().timestamp() * 1000)
+
+
+def unix_to_string(unix: int) -> str:
+    return dt.fromtimestamp(unix / 1000).strftime("%m-%d-%Y %I:%M:%S %p")
 
 
 def api_request(method: str, url: str, **kwargs: dict) -> tuple:
@@ -198,3 +206,39 @@ def export_as_markdown(convo: str, title: str, model: str) -> str:
     with open(path_filename, "w") as f:
         f.write(markdown)
     return path_filename
+
+
+def random_filename(ext: str, start_str: str = "") -> str:
+    """
+    Generate a random filename with the given extension.
+
+    Parameters:
+        ext (str): The extension of the filename.
+        start_str (str): The starting string of the filename.
+
+    Returns:
+        str: A random filename with the given extension.
+    """
+    return (
+        start_str
+        + "".join(random.choices(string.ascii_letters + string.digits, k=16))
+        + ext
+    )
+
+
+def qr_code_generator(text: str, filename: str) -> Path:
+    """
+    Generate a QR code with the given text.
+
+    Parameters:
+        text (str): The text to encode in the QR code.
+
+    Returns:
+        str: The filename of the generated QR code.
+    """
+
+    qr_img = qrcode.make(text)
+    if not Path("static/qr/").exists():
+        Path("static/qr/").mkdir(parents=True, exist_ok=True)
+    qr_img.save(f"static/qr/{filename}")
+    return Path(f"static/qr/{filename}")

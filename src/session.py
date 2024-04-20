@@ -1,6 +1,6 @@
 from src.db_manage import DatabaseManager
 from utils.data_utils import time_get
-from src.creds import Credentials
+from src.utils.creds import Credentials
 
 
 class SessionHandler:

@@ -1,29 +1,51 @@
-from flask import Flask
 import os
-from src.db_manage import DatabaseManager
-from flask_socketio import SocketIO
-from flask_seasurf import SeaSurf
-from flask_sqlalchemy import SQLAlchemy
-from constants import DATABASE, ENV_FILE
+from pathlib import Path
+from dotenv import load_dotenv
+
+ENV_FILE = Path("../.env")
 
 if not ENV_FILE.exists():
     print(" * Not loading .env file")
 else:
-    from dotenv import load_dotenv
-
     load_dotenv()
     print(" * Loading .env file")
 
 
-app = Flask(__name__, static_url_path="/static")
-app.secret_key = os.getenv("SESSIONKEY")
-app.teardown_appcontext(DatabaseManager.close_db)
-app.before_request(DatabaseManager.before_request)
-csrf = SeaSurf()
-csrf.init_app(app)
-socketio = SocketIO(app)
+from flask import Flask
+from typing import Tuple
+from flask_socketio import SocketIO
+from flask_sqlalchemy import SQLAlchemy
 
 
-app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DATABASE}"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-db = SQLAlchemy(app)
+def create_app() -> Tuple[Flask, SocketIO, SQLAlchemy]:
+    from constants import DATABASE
+    from database.database_init import (
+        db,
+        User,
+        Conversation,
+        ConversationHistory,
+        Message,
+        Payment,
+    )
+
+    database: SQLAlchemy = db
+
+    app = Flask(
+        "SparkGPT",
+        static_url_path="/src/static",
+        template_folder="/src/templates/",
+    )
+    app.secret_key = os.getenv("SESSIONKEY")
+    app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DATABASE}"
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    database.init_app(app)
+
+    with app.app_context():
+        database.create_all()
+
+    socketio = SocketIO(app)
+
+    return app, socketio, database
+
+
+app, socketio, db = create_app()
