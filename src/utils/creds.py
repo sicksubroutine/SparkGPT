@@ -6,19 +6,16 @@ import uuid
 import logging
 from logging import Logger
 from utils.data_utils import time_get
+from flask import request as flask_request
 
 logger: Logger = logging.getLogger(__name__)
 
 
 def get_ip_address(request: Request) -> str:
-    """
-    Retrieves the IP address of the user.
+    """Retrieves the IP address of the user.
 
-    Args:
-      request (flask.request): The request object.
-
-    Returns:
-      str: The IP address of the user.
+    :param request flask_request: The request object.
+    :return str: The IP address of the user.
     """
     try:
         return request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
@@ -28,18 +25,15 @@ def get_ip_address(request: Request) -> str:
 
 
 def uuid_func() -> str:
-    """
-    Generates a UUID or device_ID.
+    """Generates a UUID or device_ID.
 
-    Returns:
-        str: A UUID.
+    :return str: A UUID or device_ID.
     """
     return f"{uuid.uuid1()}"
 
 
 def hash_func(*args: tuple) -> str:
-    """
-    Generates a hash based on the given arguments.
+    """Generates a hash based on the given arguments.
 
     Args:
       *args (str): The arguments to be hashed.

@@ -1,17 +1,21 @@
 from src.db_manage import DatabaseManager
 from utils.data_utils import time_get
 from src.utils.creds import Credentials
+from dataclasses import dataclass, field
 
 
+@dataclass(slots=True)
 class SessionHandler:
-    def __init__(self, session: dict, database: DatabaseManager, creds: Credentials):
-        self.session = session
-        self.database = database
-        self.creds = creds
-        self.username = creds.username
-        self.ip_address = creds.ip_address
-        self.uuid = creds.uuid
-        self.user = database.get_user(self.username)
+    session: dict
+    database: DatabaseManager
+    creds: Credentials
+    username: str = field(default="")
+    ip_address: str = field(default="")
+    uuid: str = field(default="")
+    user: dict = field(default=None)
+
+    def __post_init__(self):
+        self.user = self.database.get_user(self.username)
 
     def do_the_things(self):
         try:
