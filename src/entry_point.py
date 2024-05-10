@@ -41,7 +41,7 @@ def index():
 
 if __name__ == "__main__":
     try:
-        socketio.run(app, host="0.0.0.0", port=81)
+        socketio.run(app, host="0.0.0.0", port=81, debug=True)
     except KeyboardInterrupt:
         print("Exiting...")
         sys.exit()
