@@ -1,4 +1,4 @@
-from constants import SECRET_KEY
+from constants import OPENAI_API_KEY
 import os
 from logging import Logger
 import logging
@@ -7,7 +7,7 @@ from typing import Tuple
 
 logger: Logger = logging.getLogger(__name__)
 
-openai.api_key = f"{SECRET_KEY}"
+openai.api_key = f"{OPENAI_API_KEY}"
 
 
 def prompt_get(chosen_prompt: str) -> dict:

@@ -12,7 +12,7 @@ MARKDOWN_DIR = Path("static/markdown/")
 
 
 DATABASE = "prime_database.db"
-PASSPHRASE = os.getenv("DATABASE_PASSPHRASE")
-SECRET_KEY = os.getenv("GPT_API")
-API_KEY = os.getenv("LNBITS_API")
-HEADERS = {"X-Api-Key": API_KEY, "Content-Type": "application/json"}
+DB_PASSPHRASE = os.getenv("DATABASE_PASSPHRASE")
+OPENAI_API_KEY = os.getenv("GPT_API")
+LNBITS_API_KEY = os.getenv("LNBITS_API")
+HEADERS = {"X-Api-Key": LNBITS_API_KEY, "Content-Type": "application/json"}

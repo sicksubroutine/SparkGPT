@@ -1,6 +1,6 @@
 from flask import g
 from pysqlcipher3 import dbapi2 as sqlite
-from constants import DATABASE, PASSPHRASE
+from constants import DATABASE, DB_PASSPHRASE
 
 
 """
@@ -29,7 +29,7 @@ class DatabaseManager:
     def open_db(self):
         if "database" not in g:
             g.database = sqlite.connect(DATABASE)
-            g.database.execute(f"PRAGMA key='{PASSPHRASE}'")
+            g.database.execute(f"PRAGMA key='{DB_PASSPHRASE}'")
             g.database.execute("PRAGMA cipher_compatibility = 4")
             g.database.execute("PRAGMA kdf_iter = 64000")
             g.database.execute("PRAGMA cipher_page_size = 4096")
