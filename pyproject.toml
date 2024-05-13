@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "sparkgpt"
+version = "0.69.0"
+description = "A chat program that allows you to access ChatGPT and GPT4 using Bitcoin over the Lightning Network."
+authors = ["Chaz"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+Flask = "^3.0.3"
+attrs = "^23.2.0"
+openai = "^1.27.0"
+qrcode = "^7.4.2"
+Flask-SQLAlchemy = "^3.1.1"
+SQLAlchemy = "^2.0.30"
+Flask-SocketIO = "^5.3.6"
+sortedcontainers = "^2.4.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.2.0"
+black = "^24.4.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

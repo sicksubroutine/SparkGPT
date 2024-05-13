@@ -15,7 +15,6 @@ markdown/
 .replit
 .poetry.lock
 poetry.lock
-pyproject.toml
 .upm/
 replit.nix
 .config/
