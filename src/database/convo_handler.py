@@ -23,3 +23,9 @@ class CreateConversation:
         )
         db.session.add(self.conversation)
         db.session.commit()
+
+    def __repr__(self):
+        return f"Conversation created: {self.conversation.id}"ß
+
+    def __str__(self):
+        return f"Conversation created: {self.conversation.id}"
