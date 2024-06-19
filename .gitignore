@@ -24,3 +24,5 @@ node_modules/
 .vscode/
 
 !requirements.txt
+
+**/.idea/**

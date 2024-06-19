@@ -31,6 +31,7 @@ mypy-extensions==1.0.0
 openai==1.28.1
 packaging==24.0
 pathspec==0.12.1
+pillow==10.3.0
 platformdirs==4.2.1
 pluggy==1.5.0
 pydantic==2.7.1
@@ -48,7 +49,7 @@ sortedcontainers==2.4.0
 SQLAlchemy==2.0.30
 tqdm==4.66.4
 typing_extensions==4.11.0
-urllib3==2.2.1
+urllib3==2.2.2
 Werkzeug==3.0.3
 wsproto==1.2.0
 yarl==1.9.4
