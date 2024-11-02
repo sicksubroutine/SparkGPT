@@ -1,6 +1,6 @@
-from src.db_manage import DatabaseManager
+from sparkgpt.db_manage import DatabaseManager
 from utils.data_utils import time_get
-from src.utils.creds import Credentials
+from sparkgpt.utils.creds import Credentials
 from dataclasses import dataclass, field
 
 
