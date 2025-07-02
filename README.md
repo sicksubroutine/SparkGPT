@@ -1,6 +1,8 @@
 # SparkGPT
 A relatively simple ChatGPT app using the ChatGPT API and LNBits API to accept Bitcoin over the Lightning Network for payment.
 
+# CONSIDER THIS DEPRECATED SINCE I WAS FAIRLY NEW AT PROGRAMMING WHEN I DID THIS
+
 ### Features:
 
 * Improved design over previous "chat apps" I have created in the past using Javascript and AJAX so there is feedback when sending a message. Previously, the page wouldn't update until the ChatGPT API responded. 
